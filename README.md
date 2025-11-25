@@ -23,6 +23,12 @@ Bağımlılıklar: Flask, Flask-JWT-Extended, pyodbc
 Tablolar, ilişkiler, TRIGGER ve STORED PROCEDURE kullanılmıştır.
 database/schema.sql dosyası ile tablo ve ilişkiler oluşturulur.
 
+-📦 Veritabanını kurmak için
+SQL Server Management Studio’yu aç
+database_setup.sql dosyasını çalıştır
+Database otomatik oluşur
+Tablolar + Trigger + SP + View + Test verileri hepsi hazır olur
+
 -💻 Frontend
 HTML, CSS ve JavaScript tabanlı arayüz
 Giriş, kitap arama/listeleme, ödünç alma ve iade ekranları

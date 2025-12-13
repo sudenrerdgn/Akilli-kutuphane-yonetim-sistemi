@@ -17,6 +17,36 @@ Proje, öğrencilerin veritabanı tasarımı, REST API geliştirme ve katmanlı 
 - ✅ Dashboard istatistikleri
 
 
+## 📁 Proje Yapısı
+
+kutuphane_sistemi/
+├── backend/
+│   ├── app.py                    # Ana Flask uygulaması
+│   ├── requirements.txt          # Python paketleri
+│   ├── controllers/              # API Controller'ları
+│   │   ├── auth_controller.py
+│   │   ├── kitap_controller.py
+│   │   ├── kullanici_controller.py
+│   │   ├── yazar_controller.py
+│   │   ├── kategori_controller.py
+│   │   ├── odunc_controller.py
+│   │   ├── ceza_controller.py
+│   │   └── istatistik_controller.py
+│   ├── models/                   # Entity sınıfları
+│   ├── repositories/             # Veritabanı işlemleri
+│   ├── services/                 # İş mantığı
+│   └── utils/                    # Yardımcı fonksiyonlar
+├── frontend/
+│   ├── index.html               # Ana sayfa
+│   ├── css/
+│   │   └── style.css            # Stiller
+│   └── js/
+│       ├── api.js               # API helper
+│       └── app.js               # Ana uygulama
+├── database/
+│   └── kutuphane_db.sql         # SQL Server scripti
+
+
 🛠 Kullanılan Teknolojiler
 
 -🐍 Backend (Python / Flask)

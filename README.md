@@ -3,12 +3,18 @@
 Akıllı Kütüphane Yönetim Sistemi, kütüphanedeki kitapların, kullanıcıların ve ödünç işlemlerinin dijital olarak yönetilmesini sağlayan bir otomasyon projesidir.
 Proje, öğrencilerin veritabanı tasarımı, REST API geliştirme ve katmanlı mimari konularında deneyim kazanmasını amaçlar.
 
-Temel Özellikler
-🔍 Kitap İşlemleri: Arama, ödünç alma, iade
-⚠ Ceza Sistemi: Geç iade durumlarında otomatik ceza hesaplama
-🧑‍💼 Yönetici Yetkileri: Kitap, yazar ve kategori ekleme, silme, güncelleme
+## 📱 Özellikler
 
-✉ Ek Özellik: Geciken iadelerde e-posta bildirimi
+- ✅ JWT tabanlı kimlik doğrulama
+- ✅ Rol tabanlı yetkilendirme (Admin, Personel, Üye)
+- ✅ Kitap, Yazar, Kategori CRUD işlemleri
+- ✅ Ödünç alma ve iade sistemi
+- ✅ Otomatik gecikme cezası hesaplama
+- ✅ Trigger ve Stored Procedure kullanımı
+- ✅ Swagger API dokümantasyonu
+- ✅ Modern responsive arayüz
+- ✅ Gerçek zamanlı arama
+- ✅ Dashboard istatistikleri
 
 
 🛠 Kullanılan Teknolojiler
@@ -21,7 +27,6 @@ Bağımlılıklar: Flask, Flask-JWT-Extended, pyodbc
 
 -🗄 Veritabanı (Microsoft SQL Server)
 Tablolar, ilişkiler, TRIGGER ve STORED PROCEDURE kullanılmıştır.
-database/schema.sql dosyası ile tablo ve ilişkiler oluşturulur.
 
 -📦 Veritabanını kurmak için
 SQL Server Management Studio’yu aç
@@ -36,8 +41,13 @@ Giriş, kitap arama/listeleme, ödünç alma ve iade ekranları
 
 🧪 Test ve Demo
 API’ler Postman veya Swagger üzerinden test edilmiştir.
-Proje akışı YouTube demo videosu ile gösterilmiştir.
-🎥 [Demo Linki Eklenecek]
+
+## 🔑 Varsayılan Kullanıcılar
+
+| E-posta | Şifre | Rol |
+|---------|-------|-----|
+| admin@test.com | 067272 | Admin |
+| sude.100@gmail.com | sudesıla1 | Üye |
 
 
 🎯 Öğrenim Hedefleri

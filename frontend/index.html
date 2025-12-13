@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📚 Akıllı Kütüphane Yönetim Sistemi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-book-reader"></i>
+                <span>Kütüphane</span>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-page="dashboard">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" data-page="kitaplar">
+                <i class="fas fa-book"></i>
+                <span>Kitaplar</span>
+            </a>
+            <a href="#" class="nav-item" data-page="yazarlar">
+                <i class="fas fa-pen-fancy"></i>
+                <span>Yazarlar</span>
+            </a>
+            <a href="#" class="nav-item" data-page="kategoriler">
+                <i class="fas fa-folder"></i>
+                <span>Kategoriler</span>
+            </a>
+            <a href="#" class="nav-item" data-page="odunc">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Ödünç İşlemleri</span>
+            </a>
+            <a href="#" class="nav-item" data-page="kullanicilar">
+                <i class="fas fa-users"></i>
+                <span>Kullanıcılar</span>
+            </a>
+            <a href="#" class="nav-item" data-page="cezalar">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Cezalar</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info" id="userInfo" style="display: none;">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Admin</span>
+                    <span class="user-role" id="userRole">Yönetici</span>
+                </div>
+                <button class="logout-btn" id="logoutBtn" title="Çıkış Yap">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Kitap ara..." id="globalSearch">
+                </div>
+                <button class="header-btn" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Giriş Yap</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content" id="content">
+            <!-- Dashboard Page -->
+            <div class="page active" id="page-dashboard">
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card gradient-1">
+                        <div class="stat-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="statKitap">0</h3>
+                            <p>Toplam Kitap</p>
+                        </div>
+                    </div>
+                    <div class="stat-card gradient-2">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="statUye">0</h3>
+                            <p>Toplam Üye</p>
+                        </div>
+                    </div>
+                    <div class="stat-card gradient-3">
+                        <div class="stat-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="statOdunc">0</h3>
+                            <p>Aktif Ödünç</p>
+                        </div>
+                    </div>
+                    <div class="stat-card gradient-4">
+                        <div class="stat-icon">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="statGeciken">0</h3>
+                            <p>Geciken Kitap</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts & Tables -->
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-fire"></i> Popüler Kitaplar</h2>
+                        </div>
+                        <div class="card-body">
+                            <ul class="popular-list" id="popularBooks">
+                                <li class="loading-item">Yükleniyor...</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-clock"></i> Son İşlemler</h2>
+                        </div>
+                        <div class="card-body">
+                            <ul class="activity-list" id="recentActivity">
+                                <li class="loading-item">Yükleniyor...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kitaplar Page -->
+            <div class="page" id="page-kitaplar">
+                <div class="page-header">
+                    <div class="filters">
+                        <select id="kategoriFilter" class="filter-select">
+                            <option value="">Tüm Kategoriler</option>
+                        </select>
+                        <select id="yazarFilter" class="filter-select">
+                            <option value="">Tüm Yazarlar</option>
+                        </select>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="mevcutFilter">
+                            <span>Sadece Mevcut</span>
+                        </label>
+                    </div>
+                    <button class="btn btn-primary" id="addBookBtn">
+                        <i class="fas fa-plus"></i> Yeni Kitap
+                    </button>
+                </div>
+                
+                <div class="books-grid" id="booksGrid">
+                    <!-- Kitaplar buraya yüklenecek -->
+                </div>
+            </div>
+
+            <!-- Yazarlar Page -->
+            <div class="page" id="page-yazarlar">
+                <div class="page-header">
+                    <h2>Yazar Listesi</h2>
+                    <button class="btn btn-primary" id="addAuthorBtn">
+                        <i class="fas fa-plus"></i> Yeni Yazar
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="authorsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ad Soyad</th>
+                                <th>Ülke</th>
+                                <th>Biyografi</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="authorsBody">
+                            <!-- Yazarlar buraya yüklenecek -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Kategoriler Page -->
+            <div class="page" id="page-kategoriler">
+                <div class="page-header">
+                    <h2>Kategori Listesi</h2>
+                    <button class="btn btn-primary" id="addCategoryBtn">
+                        <i class="fas fa-plus"></i> Yeni Kategori
+                    </button>
+                </div>
+                <div class="categories-grid" id="categoriesGrid">
+                    <!-- Kategoriler buraya yüklenecek -->
+                </div>
+            </div>
+
+            <!-- Ödünç İşlemleri Page -->
+            <div class="page" id="page-odunc">
+                <div class="page-header">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="aktif">Aktif Ödünçler</button>
+                        <button class="tab-btn" data-tab="geciken">Geciken</button>
+                        <button class="tab-btn" data-tab="gecmis">Geçmiş</button>
+                    </div>
+                    <button class="btn btn-primary" id="newBorrowBtn">
+                        <i class="fas fa-plus"></i> Yeni Ödünç
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="borrowsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Kitap</th>
+                                <th>Kullanıcı</th>
+                                <th>Ödünç Tarihi</th>
+                                <th>Teslim Tarihi</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="borrowsBody">
+                            <!-- Ödünç işlemleri buraya yüklenecek -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Kullanıcılar Page -->
+            <div class="page" id="page-kullanicilar">
+                <div class="page-header">
+                    <h2>Kullanıcı Listesi</h2>
+                    <button class="btn btn-primary" id="addUserBtn">
+                        <i class="fas fa-plus"></i> Yeni Kullanıcı
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ad Soyad</th>
+                                <th>E-posta</th>
+                                <th>Telefon</th>
+                                <th>Rol</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody">
+                            <!-- Kullanıcılar buraya yüklenecek -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Cezalar Page -->
+            <div class="page" id="page-cezalar">
+                <div class="page-header">
+                    <h2>Ceza Listesi</h2>
+                    <div class="penalty-summary">
+                        <span>Toplam Ödenmemiş: <strong id="totalPenalty">0.00 TL</strong></span>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="penaltiesTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Kullanıcı</th>
+                                <th>Kitap</th>
+                                <th>Gecikme (Gün)</th>
+                                <th>Tutar</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="penaltiesBody">
+                            <!-- Cezalar buraya yüklenecek -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2><i class="fas fa-sign-in-alt"></i> Giriş Yap</h2>
+                <button class="modal-close" data-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">E-posta</label>
+                        <input type="email" id="loginEmail" required placeholder="ornek@mail.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Şifre</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-sign-in-alt"></i> Giriş Yap
+                    </button>
+                </form>
+                <div class="form-footer">
+                    <p>Hesabınız yok mu? <a href="#" id="showRegister">Kayıt Ol</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal" id="registerModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-plus"></i> Kayıt Ol</h2>
+                <button class="modal-close" data-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="regAd">Ad</label>
+                            <input type="text" id="regAd" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="regSoyad">Soyad</label>
+                            <input type="text" id="regSoyad" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="regEmail">E-posta</label>
+                        <input type="email" id="regEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regTelefon">Telefon</label>
+                        <input type="tel" id="regTelefon" placeholder="05XX XXX XX XX">
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword">Şifre</label>
+                        <input type="password" id="regPassword" required minlength="6">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-user-plus"></i> Kayıt Ol
+                    </button>
+                </form>
+                <div class="form-footer">
+                    <p>Zaten hesabınız var mı? <a href="#" id="showLogin">Giriş Yap</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Modal -->
+    <div class="modal" id="bookModal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2 id="bookModalTitle"><i class="fas fa-book"></i> Yeni Kitap</h2>
+                <button class="modal-close" data-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="bookForm">
+                    <input type="hidden" id="bookId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bookIsbn">ISBN *</label>
+                            <input type="text" id="bookIsbn" required placeholder="9789750000000">
+                        </div>
+                        <div class="form-group">
+                            <label for="bookName">Kitap Adı *</label>
+                            <input type="text" id="bookName" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bookAuthor">Yazar</label>
+                            <select id="bookAuthor">
+                                <option value="">Seçiniz</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="bookCategory">Kategori</label>
+                            <select id="bookCategory">
+                                <option value="">Seçiniz</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bookYear">Yayın Yılı</label>
+                            <input type="number" id="bookYear" min="1000" max="2030">
+                        </div>
+                        <div class="form-group">
+                            <label for="bookPublisher">Yayınevi</label>
+                            <input type="text" id="bookPublisher">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bookPages">Sayfa Sayısı</label>
+                            <input type="number" id="bookPages" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="bookLang">Dil</label>
+                            <select id="bookLang">
+                                <option value="Türkçe">Türkçe</option>
+                                <option value="İngilizce">İngilizce</option>
+                                <option value="Almanca">Almanca</option>
+                                <option value="Fransızca">Fransızca</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bookTotal">Toplam Adet</label>
+                            <input type="number" id="bookTotal" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="bookAvailable">Mevcut Adet</label>
+                            <input type="number" id="bookAvailable" min="0" value="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookDesc">Açıklama</label>
+                        <textarea id="bookDesc" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" data-close>İptal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Author Modal -->
+    <div class="modal" id="authorModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 id="authorModalTitle"><i class="fas fa-user"></i> Yeni Yazar</h2>
+                <button class="modal-close" data-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="authorForm">
+                    <input type="hidden" id="authorId">
+                    <div class="form-group">
+                        <label for="authorAd">Ad *</label>
+                        <input type="text" id="authorAd" required placeholder="Yazarın adı">
+                    </div>
+                    <div class="form-group">
+                        <label for="authorSoyad">Soyad *</label>
+                        <input type="text" id="authorSoyad" required placeholder="Yazarın soyadı">
+                    </div>
+                    <div class="form-group">
+                        <label for="authorCountry">Ülke</label>
+                        <input type="text" id="authorCountry" placeholder="Ülke">
+                    </div>
+                    <div class="form-group">
+                        <label for="authorBio">Biyografi</label>
+                        <textarea id="authorBio" rows="3" placeholder="Yazar hakkında kısa bilgi"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" data-close>İptal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div class="modal" id="categoryModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 id="categoryModalTitle"><i class="fas fa-folder"></i> Yeni Kategori</h2>
+                <button class="modal-close" data-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm">
+                    <input type="hidden" id="categoryId">
+                    <div class="form-group">
+                        <label for="categoryName">Kategori Adı *</label>
+                        <input type="text" id="categoryName" required placeholder="Kategori adı">
+                    </div>
+                    <div class="form-group">
+                        <label for="categoryDesc">Açıklama</label>
+                        <textarea id="categoryDesc" rows="3" placeholder="Kategori açıklaması"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" data-close>İptal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div class="modal" id="userModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 id="userModalTitle"><i class="fas fa-user-plus"></i> Yeni Kullanıcı</h2>
+                <button class="modal-close" data-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="userAd">Ad *</label>
+                            <input type="text" id="userAd" required placeholder="Ad">
+                        </div>
+                        <div class="form-group">
+                            <label for="userSoyad">Soyad *</label>
+                            <input type="text" id="userSoyad" required placeholder="Soyad">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="userEmail">E-posta *</label>
+                        <input type="email" id="userEmail" required placeholder="E-posta adresi">
+                    </div>
+                    <div class="form-group">
+                        <label for="userTelefon">Telefon</label>
+                        <input type="text" id="userTelefon" placeholder="Telefon numarası">
+                    </div>
+                    <div class="form-group">
+                        <label for="userPassword">Şifre *</label>
+                        <input type="password" id="userPassword" required placeholder="Şifre" minlength="6">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" data-close>İptal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Borrow Modal -->
+    <div class="modal" id="borrowModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2><i class="fas fa-exchange-alt"></i> Kitap Ödünç Al</h2>
+                <button class="modal-close" data-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="borrowForm">
+                    <div class="form-group">
+                        <label for="borrowBook">Kitap *</label>
+                        <select id="borrowBook" required>
+                            <option value="">Kitap Seçiniz</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="borrowDays">Ödünç Süresi (Gün)</label>
+                        <input type="number" id="borrowDays" value="14" min="1" max="30">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" data-close>İptal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check"></i> Ödünç Al
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    
+</body>
+</html>

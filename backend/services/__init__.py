@@ -198,18 +198,10 @@ class YazarService:
     
     @staticmethod
     def create(data: dict) -> Tuple[bool, str, Optional[int]]:
-        try:
-            print(f"YAZAR DATA: {data}")
-            yazar_id = YazarRepository.create(data)
-            print(f"YAZAR ID: {yazar_id}")
-            if yazar_id:
-                return True, "Yazar eklendi.", yazar_id
-            return False, "Yazar eklenirken hata oluştu.", None
-        except Exception as e:
-            print(f"YAZAR HATASI: {e}")
-            import traceback
-            traceback.print_exc()
-            return False, f"Hata: {str(e)}", None
+        yazar_id = YazarRepository.create(data)
+        if yazar_id:
+            return True, "Yazar eklendi.", yazar_id
+        return False, "Yazar eklenirken hata oluştu.", None
     
     @staticmethod
     def update(yazar_id: int, data: dict) -> Tuple[bool, str]:
@@ -266,7 +258,13 @@ class KategoriService:
 
 
 class OduncService:
-    """Ödünç İşlemleri Servisi"""
+    """Ödünç İşlemi Servisi"""
+    
+    MAX_BORROW_LIMIT = 5
+    DEFAULT_BORROW_DAYS = 14
+    
+    # Ceza oranı - DAKİKA BAŞINA SABİT
+    CEZA_DAKIKA_BASI = 0.10    # Her dakika 0.10 TL
     
     @staticmethod
     def get_all() -> List[dict]:
@@ -278,58 +276,126 @@ class OduncService:
     
     @staticmethod
     def get_by_kullanici(kullanici_id: int) -> List[dict]:
+        """Kullanıcının ödünç geçmişini getirir"""
         return OduncRepository.get_by_user(kullanici_id)
     
     @staticmethod
     def get_aktif_by_kullanici(kullanici_id: int) -> List[dict]:
+        """Kullanıcının aktif ödünçlerini getirir"""
         return OduncRepository.get_active_by_user(kullanici_id)
     
     @staticmethod
     def get_geciken() -> List[dict]:
+        """Geciken kitapları getirir"""
         return OduncRepository.get_overdue()
     
     @staticmethod
-    def odunc_al(kullanici_id: int, kitap_id: int, gun: int = 14):
-        try:
-            # Kitap mevcut mu kontrol et
-            if not OduncRepository.check_book_available(kitap_id):
-                return False, "Kitap mevcut değil veya stokta yok."
+    def odunc_al(kullanici_id: int, kitap_id: int, gun: int = 0, 
+                 saat: int = 0, dakika: int = 0) -> Tuple[bool, str]:
+        """
+        Kitap ödünç alma
+        
+        Args:
+            kullanici_id: Ödünç alan kullanıcı
+            kitap_id: Ödünç alınacak kitap
+            gun: Gün sayısı
+            saat: Saat sayısı
+            dakika: Dakika sayısı
             
-            # Kullanıcının aktif ödünç sayısını kontrol et
-            aktif_sayi = OduncRepository.count_user_active_borrows(kullanici_id)
-            if aktif_sayi >= 5:
-                return False, "En fazla 5 kitap ödünç alabilirsiniz."
-            
-            # Ödünç kaydı oluştur
-            odunc_data = {
-                'kitap_id': kitap_id,
-                'kullanici_id': kullanici_id,
-                'odunc_gun': gun
-            }
-            odunc_id = OduncRepository.create(odunc_data)
-            
-            if odunc_id:
-                return True, "Kitap başarıyla ödünç alındı."
-            return False, "Ödünç alma işlemi başarısız."
-        except Exception as e:
-            print(f"ÖDÜNÇ ALMA HATASI: {e}")
-            return False, f"Hata: {str(e)}"
+        Toplam süre = (gün × 24 × 60) + (saat × 60) + dakika
+        """
+        # Kitap mevcut mu?
+        if not OduncRepository.check_book_available(kitap_id):
+            return False, "Kitap stokta mevcut değil."
+        
+        # Kullanıcı limit kontrolü
+        aktif_odunc = OduncRepository.count_user_active_borrows(kullanici_id)
+        if aktif_odunc >= OduncService.MAX_BORROW_LIMIT:
+            return False, f"Maksimum ödünç limitine ({OduncService.MAX_BORROW_LIMIT}) ulaştınız."
+        
+        # Ödenmemiş ceza kontrolü
+        odenmemis_ceza = CezaRepository.get_total_unpaid(kullanici_id)
+        if odenmemis_ceza > 0:
+            return False, f"Ödenmemiş {odenmemis_ceza:.2f} TL cezanız bulunmaktadır."
+        
+        # Ödünç verisi hazırla
+        odunc_data = {
+            'kitap_id': kitap_id,
+            'kullanici_id': kullanici_id,
+            'odunc_gun': gun or 0,
+            'odunc_saat': saat or 0,
+            'odunc_dakika': dakika or 0
+        }
+        
+        # Ödünç işlemi
+        odunc_id = OduncRepository.create(odunc_data)
+        if odunc_id:
+            sure_mesaj = odunc_data.get('_sure_mesaj', '14 gün')
+            return True, f"Kitap {sure_mesaj} süreyle ödünç alındı."
+        return False, "Ödünç işlemi sırasında hata oluştu."
     
     @staticmethod
-    def iade_et(odunc_id: int):
-        try:
-            odunc = OduncRepository.get_by_id(odunc_id)
-            if not odunc:
-                return False, "Ödünç kaydı bulunamadı.", None
+    def iade_et(odunc_id: int) -> Tuple[bool, str, Optional[float]]:
+        """
+        Kitap iade et ve ceza hesapla
+        
+        Ceza = Gecikme dakikası × 0.10 TL
+        
+        Returns:
+            Tuple[bool, str, Optional[float]]: (başarı, mesaj, ceza_tutarı)
+        """
+        odunc = OduncRepository.get_by_id(odunc_id)
+        if not odunc:
+            return False, "Ödünç kaydı bulunamadı.", None
+        
+        if odunc['Durum'] == 'iade':
+            return False, "Bu kitap zaten iade edilmiş.", None
+        
+        # İade işlemi
+        result = OduncRepository.return_book(odunc_id)
+        if not result:
+            return False, "İade işlemi sırasında hata oluştu.", None
+        
+        # Gecikme hesapla (dakika bazında)
+        teslim_tarihi = odunc['TeslimTarihi']
+        simdi = datetime.now()
+        
+        if simdi > teslim_tarihi:
+            # Gecikme var!
+            fark = simdi - teslim_tarihi
+            gecikme_dakika = int(fark.total_seconds() / 60)  # Toplam dakika
             
-            if odunc.get('Durum') == 'iade':
-                return False, "Bu kitap zaten iade edilmiş.", None
+            # Ceza hesapla - SABİT 0.10 TL / dakika
+            ceza_tutari = gecikme_dakika * OduncService.CEZA_DAKIKA_BASI
+            ceza_tutari = round(ceza_tutari, 2)
             
-            OduncRepository.return_book(odunc_id)
-            return True, "Kitap başarıyla iade edildi.", 0
-        except Exception as e:
-            print(f"İADE HATASI: {e}")
-            return False, f"Hata: {str(e)}", None
+            # Gecikme mesajı oluştur
+            gun = gecikme_dakika // (24 * 60)
+            kalan = gecikme_dakika % (24 * 60)
+            saat = kalan // 60
+            dk = kalan % 60
+            
+            gecikme_parcalari = []
+            if gun > 0:
+                gecikme_parcalari.append(f"{gun} gün")
+            if saat > 0:
+                gecikme_parcalari.append(f"{saat} saat")
+            if dk > 0 or (gun == 0 and saat == 0):
+                gecikme_parcalari.append(f"{dk} dakika")
+            gecikme_mesaj = " ".join(gecikme_parcalari)
+            
+            # Trigger zaten ceza oluşturmuş olabilir, kontrol et
+            if not CezaRepository.check_exists_for_odunc(odunc_id):
+                CezaRepository.create(
+                    odunc_id=odunc_id,
+                    kullanici_id=odunc['KullaniciID'],
+                    gecikme_dakika=gecikme_dakika,
+                    ceza_tutari=ceza_tutari
+                )
+            
+            return True, f"Kitap iade edildi. {gecikme_mesaj} gecikme - {ceza_tutari:.2f} TL ceza oluşturuldu.", ceza_tutari
+        
+        return True, "Kitap zamanında iade edildi.", None
 
 
 class CezaService:
@@ -341,31 +407,31 @@ class CezaService:
     
     @staticmethod
     def get_by_id(ceza_id: int) -> Optional[dict]:
+        """ID'ye göre ceza getirir"""
         return CezaRepository.get_by_id(ceza_id)
     
     @staticmethod
     def get_by_kullanici(kullanici_id: int) -> List[dict]:
+        """Kullanıcının cezalarını getirir"""
         return CezaRepository.get_by_user(kullanici_id)
     
     @staticmethod
     def get_unpaid_by_kullanici(kullanici_id: int) -> List[dict]:
+        """Kullanıcının ödenmemiş cezalarını getirir"""
         return CezaRepository.get_unpaid_by_user(kullanici_id)
     
     @staticmethod
-    def pay(ceza_id: int):
-        try:
-            ceza = CezaRepository.get_by_id(ceza_id)
-            if not ceza:
-                return False, "Ceza bulunamadı."
-            
-            if ceza.get('OdenmeDurumu'):
-                return False, "Bu ceza zaten ödenmiş."
-            
-            CezaRepository.pay_penalty(ceza_id)
-            return True, "Ceza başarıyla ödendi."
-        except Exception as e:
-            print(f"CEZA ÖDEME HATASI: {e}")
-            return False, f"Hata: {str(e)}"
+    def pay(ceza_id: int) -> Tuple[bool, str]:
+        """Ceza öder"""
+        result = CezaRepository.pay_penalty(ceza_id)
+        if result:
+            return True, "Ceza ödendi."
+        return False, "Ceza ödenirken hata oluştu."
+    
+    @staticmethod
+    def get_user_total_unpaid(kullanici_id: int) -> float:
+        """Kullanıcının toplam ödenmemiş ceza tutarını döndürür"""
+        return CezaRepository.get_total_unpaid(kullanici_id)
 
 
 class IstatistikService:

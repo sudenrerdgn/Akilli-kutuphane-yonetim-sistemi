@@ -29,10 +29,10 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
 
 # SQL Server
-app.config['SQLSERVER_HOST'] = 'Resul\\SQLEXPRESS'
+app.config['SQLSERVER_HOST'] = '*****\\SQLEXPRESS'
 app.config['SQLSERVER_DATABASE'] = 'KutuphaneDB'
 app.config['SQLSERVER_USERNAME'] = 'sa' 
-app.config['SQLSERVER_PASSWORD'] = 'k9NN66CC'
+app.config['SQLSERVER_PASSWORD'] = '******'
 app.config['SQLSERVER_DRIVER'] = 'ODBC Driver 17 for SQL Server'
 
 # E-posta

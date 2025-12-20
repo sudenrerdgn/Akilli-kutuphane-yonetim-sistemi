@@ -13,18 +13,7 @@ odunc_bp = Blueprint('odunc', __name__)
 @odunc_bp.route('', methods=['GET'])
 @jwt_required()
 def get_all():
-    """Tüm Ödünç İşlemlerini Getir
-    ---
-    tags:
-      - Ödünç İşlemleri
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: Ödünç işlemleri listesi
-      403:
-        description: Yetki yok
-    """
+    """Tüm Ödünç İşlemlerini Getir (Admin/Personel)"""
     claims = get_jwt()
     if claims.get('rol') not in ['admin', 'personel']:
         return jsonify({'hata': True, 'mesaj': 'Yetkiniz yok.'}), 403
@@ -40,23 +29,7 @@ def get_all():
 @odunc_bp.route('/<int:odunc_id>', methods=['GET'])
 @jwt_required()
 def get_by_id(odunc_id):
-    """Ödünç Detayı Getir
-    ---
-    tags:
-      - Ödünç İşlemleri
-    security:
-      - Bearer: []
-    parameters:
-      - name: odunc_id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: Ödünç detayı
-      404:
-        description: Ödünç bulunamadı
-    """
+    """ID'ye Göre Ödünç İşlemi Getir"""
     odunc = OduncService.get_by_id(odunc_id)
     
     if odunc:
@@ -67,86 +40,58 @@ def get_by_id(odunc_id):
 @odunc_bp.route('/gecmisim', methods=['GET'])
 @jwt_required()
 def get_my_history():
-    """Kendi Ödünç Geçmişim
-    ---
-    tags:
-      - Ödünç İşlemleri
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: Kullanıcının ödünç geçmişi
-    """
+    """Kendi Ödünç Geçmişimi Getir"""
     kullanici_id = get_jwt_identity()
     oduncler = OduncService.get_by_kullanici(kullanici_id)
     return jsonify({
         'hata': False,
         'data': oduncler,
-        'toplam': len(oduncler)
+        'toplam': len(oduncler) if oduncler else 0
     }), 200
 
 
 @odunc_bp.route('/aktif', methods=['GET'])
 @jwt_required()
 def get_my_active():
-    """Aktif Ödünçlerim
-    ---
-    tags:
-      - Ödünç İşlemleri
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: Kullanıcının aktif ödünçleri
-    """
+    """Kendi Aktif Ödünçlerimi Getir"""
     kullanici_id = get_jwt_identity()
     oduncler = OduncService.get_aktif_by_kullanici(kullanici_id)
     return jsonify({
         'hata': False,
         'data': oduncler,
-        'toplam': len(oduncler)
+        'toplam': len(oduncler) if oduncler else 0
     }), 200
 
 
 @odunc_bp.route('/geciken', methods=['GET'])
 @jwt_required()
 def get_overdue():
-    """Geciken Kitaplar
-    ---
-    tags:
-      - Ödünç İşlemleri
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: Geciken kitaplar listesi
-      403:
-        description: Yetki yok
-    """
+    """Geciken Kitapları Getir (Admin/Personel)"""
     claims = get_jwt()
     if claims.get('rol') not in ['admin', 'personel']:
         return jsonify({'hata': True, 'mesaj': 'Yetkiniz yok.'}), 403
     
-    geciken = OduncService.get_geciken()
+    gecikenler = OduncService.get_geciken()
     return jsonify({
         'hata': False,
-        'data': geciken,
-        'toplam': len(geciken) if geciken else 0
+        'data': gecikenler,
+        'toplam': len(gecikenler) if gecikenler else 0
     }), 200
 
 
 @odunc_bp.route('/al', methods=['POST'])
 @jwt_required()
-def borrow():
-    """Kitap Ödünç Al
+def borrow_book():
+    """
+    Kitap Ödünç Al
     ---
     tags:
-      - Ödünç İşlemleri
+      - Ödünç
     security:
       - Bearer: []
     parameters:
-      - name: body
-        in: body
+      - in: body
+        name: body
         required: true
         schema:
           type: object
@@ -159,34 +104,66 @@ def borrow():
             gun:
               type: integer
               example: 14
-              description: Ödünç süresi (gün)
+              description: Ödünç gün sayısı (varsayılan 14)
+            saat:
+              type: integer
+              example: 1
+              description: Ödünç saat sayısı (test için)
+            dakika:
+              type: integer
+              example: 5
+              description: Ödünç dakika sayısı (test için, öncelikli)
     responses:
-      201:
+      200:
         description: Kitap ödünç alındı
       400:
-        description: İşlem hatası
+        description: Hata
     """
     kullanici_id = get_jwt_identity()
     data = request.get_json()
     
-    if not data.get('kitap_id'):
+    kitap_id = data.get('kitap_id')
+    gun = data.get('gun')
+    saat = data.get('saat')
+    dakika = data.get('dakika')
+    
+    if not kitap_id:
         return jsonify({'hata': True, 'mesaj': 'Kitap ID zorunludur.'}), 400
     
-    gun = data.get('gun', 14)
-    success, message = OduncService.odunc_al(kullanici_id, data['kitap_id'], gun)
+    # Integer'a çevir
+    try:
+        kitap_id = int(kitap_id)
+        if gun is not None:
+            gun = int(gun)
+        if saat is not None:
+            saat = int(saat)
+        if dakika is not None:
+            dakika = int(dakika)
+    except (ValueError, TypeError):
+        return jsonify({'hata': True, 'mesaj': 'Geçersiz parametre tipi.'}), 400
+    
+    # Yeni metodu çağır
+    success, message = OduncService.odunc_al(
+        kullanici_id=kullanici_id, 
+        kitap_id=kitap_id, 
+        gun=gun,
+        saat=saat,
+        dakika=dakika
+    )
     
     if success:
-        return jsonify({'hata': False, 'mesaj': message}), 201
+        return jsonify({'hata': False, 'mesaj': message}), 200
     return jsonify({'hata': True, 'mesaj': message}), 400
 
 
 @odunc_bp.route('/iade/<int:odunc_id>', methods=['POST'])
 @jwt_required()
 def return_book(odunc_id):
-    """Kitap İade Et
+    """
+    Kitap İade Et
     ---
     tags:
-      - Ödünç İşlemleri
+      - Ödünç
     security:
       - Bearer: []
     parameters:
@@ -198,45 +175,32 @@ def return_book(odunc_id):
       200:
         description: Kitap iade edildi
       400:
-        description: İade hatası
+        description: Hata
     """
-    success, message, ceza = OduncService.iade_et(odunc_id)
+    # Yeni metodu çağır
+    success, message, ceza_tutari = OduncService.iade_et(odunc_id)
     
     if success:
         response = {'hata': False, 'mesaj': message}
-        if ceza and ceza > 0:
-            response['ceza'] = ceza
+        if ceza_tutari is not None:
+            response['ceza_tutari'] = ceza_tutari
         return jsonify(response), 200
     return jsonify({'hata': True, 'mesaj': message}), 400
 
 
 @odunc_bp.route('/kullanici/<int:kullanici_id>', methods=['GET'])
 @jwt_required()
-def get_by_kullanici(kullanici_id):
-    """Kullanıcının Ödünç Geçmişi
-    ---
-    tags:
-      - Ödünç İşlemleri
-    security:
-      - Bearer: []
-    parameters:
-      - name: kullanici_id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: Kullanıcının ödünç geçmişi
-      403:
-        description: Yetki yok
-    """
+def get_user_history(kullanici_id):
+    """Belirli Kullanıcının Ödünç Geçmişi (Admin/Personel)"""
     claims = get_jwt()
-    if claims.get('rol') not in ['admin', 'personel']:
+    current_id = get_jwt_identity()
+    
+    if current_id != kullanici_id and claims.get('rol') not in ['admin', 'personel']:
         return jsonify({'hata': True, 'mesaj': 'Yetkiniz yok.'}), 403
     
     oduncler = OduncService.get_by_kullanici(kullanici_id)
     return jsonify({
         'hata': False,
         'data': oduncler,
-        'toplam': len(oduncler)
+        'toplam': len(oduncler) if oduncler else 0
     }), 200

@@ -3,7 +3,7 @@
 # Ceza Controller
 # ============================================
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from services import CezaService
 
@@ -13,18 +13,7 @@ ceza_bp = Blueprint('cezalar', __name__)
 @ceza_bp.route('', methods=['GET'])
 @jwt_required()
 def get_all():
-    """Tüm Cezaları Getir
-    ---
-    tags:
-      - Cezalar
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: Cezalar listesi
-      403:
-        description: Yetki yok
-    """
+    """Tüm Cezaları Getir (Admin/Personel)"""
     claims = get_jwt()
     if claims.get('rol') not in ['admin', 'personel']:
         return jsonify({'hata': True, 'mesaj': 'Yetkiniz yok.'}), 403
@@ -33,115 +22,70 @@ def get_all():
     return jsonify({
         'hata': False,
         'data': cezalar,
-        'toplam': len(cezalar)
+        'toplam': len(cezalar) if cezalar else 0
     }), 200
+
+
+@ceza_bp.route('/<int:ceza_id>', methods=['GET'])
+@jwt_required()
+def get_by_id(ceza_id):
+    """ID'ye Göre Ceza Getir"""
+    ceza = CezaService.get_by_id(ceza_id)
+    
+    if ceza:
+        return jsonify({'hata': False, 'data': ceza}), 200
+    return jsonify({'hata': True, 'mesaj': 'Ceza bulunamadı.'}), 404
 
 
 @ceza_bp.route('/benim', methods=['GET'])
 @jwt_required()
 def get_my_penalties():
-    """Kendi Cezalarımı Getir
-    ---
-    tags:
-      - Cezalar
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: Kullanıcının cezaları
-    """
+    """Kendi Cezalarımı Getir"""
     kullanici_id = get_jwt_identity()
     cezalar = CezaService.get_by_kullanici(kullanici_id)
+    toplam_odenmemis = CezaService.get_user_total_unpaid(kullanici_id)
+    
     return jsonify({
         'hata': False,
         'data': cezalar,
-        'toplam': len(cezalar)
+        'toplam': len(cezalar) if cezalar else 0,
+        'toplam_odenmemis': toplam_odenmemis
     }), 200
 
 
 @ceza_bp.route('/odenmemis', methods=['GET'])
 @jwt_required()
-def get_unpaid():
-    """Ödenmemiş Cezalarımı Getir
-    ---
-    tags:
-      - Cezalar
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: Ödenmemiş cezalar listesi
-    """
+def get_my_unpaid():
+    """Kendi Ödenmemiş Cezalarımı Getir"""
     kullanici_id = get_jwt_identity()
     cezalar = CezaService.get_unpaid_by_kullanici(kullanici_id)
-    
-    toplam_borc = sum(c.get('CezaTutari', 0) for c in cezalar)
+    toplam = CezaService.get_user_total_unpaid(kullanici_id)
     
     return jsonify({
         'hata': False,
         'data': cezalar,
-        'toplam_ceza': len(cezalar),
-        'toplam_borc': toplam_borc
-    }), 200
-
-
-@ceza_bp.route('/kullanici/<int:kullanici_id>', methods=['GET'])
-@jwt_required()
-def get_by_kullanici(kullanici_id):
-    """Kullanıcının Cezalarını Getir
-    ---
-    tags:
-      - Cezalar
-    security:
-      - Bearer: []
-    parameters:
-      - name: kullanici_id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: Kullanıcının cezaları
-      403:
-        description: Yetki yok
-    """
-    claims = get_jwt()
-    if claims.get('rol') not in ['admin', 'personel']:
-        return jsonify({'hata': True, 'mesaj': 'Yetkiniz yok.'}), 403
-    
-    cezalar = CezaService.get_by_kullanici(kullanici_id)
-    return jsonify({
-        'hata': False,
-        'data': cezalar,
-        'toplam': len(cezalar)
+        'toplam_tutar': toplam
     }), 200
 
 
 @ceza_bp.route('/ode/<int:ceza_id>', methods=['POST'])
 @jwt_required()
 def pay_penalty(ceza_id):
-    """Ceza Öde
-    ---
-    tags:
-      - Cezalar
-    security:
-      - Bearer: []
-    parameters:
-      - name: ceza_id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: Ceza ödendi
-      400:
-        description: Ödeme hatası
-      403:
-        description: Yetki yok
     """
-    claims = get_jwt()
-    if claims.get('rol') not in ['admin', 'personel']:
-        return jsonify({'hata': True, 'mesaj': 'Yetkiniz yok.'}), 403
+    Ceza Öde
+    - Sadece ceza sahibi kullanıcı kendi cezasını ödeyebilir
+    - Admin/Personel bile başkasının cezasını ödeyemez
+    """
+    current_user_id = get_jwt_identity()
+    
+    # Cezayı getir
+    ceza = CezaService.get_by_id(ceza_id)
+    if not ceza:
+        return jsonify({'hata': True, 'mesaj': 'Ceza bulunamadı.'}), 404
+    
+    # Sadece ceza sahibi ödeyebilir
+    if ceza['KullaniciID'] != current_user_id:
+        return jsonify({'hata': True, 'mesaj': 'Sadece kendi cezanızı ödeyebilirsiniz.'}), 403
     
     success, message = CezaService.pay(ceza_id)
     
@@ -150,28 +94,19 @@ def pay_penalty(ceza_id):
     return jsonify({'hata': True, 'mesaj': message}), 400
 
 
-@ceza_bp.route('/<int:ceza_id>', methods=['GET'])
+@ceza_bp.route('/kullanici/<int:kullanici_id>', methods=['GET'])
 @jwt_required()
-def get_by_id(ceza_id):
-    """Ceza Detayı Getir
-    ---
-    tags:
-      - Cezalar
-    security:
-      - Bearer: []
-    parameters:
-      - name: ceza_id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: Ceza detayı
-      404:
-        description: Ceza bulunamadı
-    """
-    ceza = CezaService.get_by_id(ceza_id)
+def get_user_penalties(kullanici_id):
+    """Belirli Kullanıcının Cezaları (Admin/Personel)"""
+    claims = get_jwt()
+    current_id = get_jwt_identity()
     
-    if ceza:
-        return jsonify({'hata': False, 'data': ceza}), 200
-    return jsonify({'hata': True, 'mesaj': 'Ceza bulunamadı.'}), 404
+    if current_id != kullanici_id and claims.get('rol') not in ['admin', 'personel']:
+        return jsonify({'hata': True, 'mesaj': 'Yetkiniz yok.'}), 403
+    
+    cezalar = CezaService.get_by_kullanici(kullanici_id)
+    return jsonify({
+        'hata': False,
+        'data': cezalar,
+        'toplam': len(cezalar) if cezalar else 0
+    }), 200

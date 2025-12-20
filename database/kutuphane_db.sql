@@ -1,4 +1,3 @@
-SQL KODLARI:
 -- ============================================
 -- AKILLI KÜTÜPHANE YÖNETİM SİSTEMİ
 -- SQL Server Veritabanı Scripti
@@ -13,6 +12,7 @@ GO
 
 USE KutuphaneDB;
 GO
+
 
 -- ============================================
 -- TABLOLAR
@@ -184,40 +184,53 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Sadece iade durumuna geçenleri kontrol et
-    IF EXISTS (SELECT 1 FROM inserted i 
-               INNER JOIN deleted d ON i.OduncID = d.OduncID 
-               WHERE i.Durum = 'iade' AND d.Durum != 'iade')
+    IF UPDATE(Durum)
     BEGIN
-        -- Mevcut adeti artır
-        UPDATE Kitaplar
-        SET MevcutAdet = MevcutAdet + 1
-        FROM Kitaplar k
-        INNER JOIN inserted i ON k.KitapID = i.KitapID
-        INNER JOIN deleted d ON i.OduncID = d.OduncID
-        WHERE i.Durum = 'iade' AND d.Durum != 'iade';
+        DECLARE @OduncID INT;
+        DECLARE @KitapID INT;
+        DECLARE @KullaniciID INT;
+        DECLARE @TeslimTarihi DATETIME;
+        DECLARE @IadeTarihi DATETIME;
+        DECLARE @GecikmeDakika INT;
+        DECLARE @CezaTutari DECIMAL(10,2);
         
-        -- Gecikme varsa ceza hesapla (Günlük 5 TL)
-        INSERT INTO Cezalar (OduncID, KullaniciID, GecikmeGunu, CezaTutari)
-        SELECT i.OduncID, i.KullaniciID, 
-               DATEDIFF(DAY, i.TeslimTarihi, i.IadeTarihi),
-               DATEDIFF(DAY, i.TeslimTarihi, i.IadeTarihi) * 5.00
-        FROM inserted i
-        INNER JOIN deleted d ON i.OduncID = d.OduncID
-        WHERE i.Durum = 'iade' 
-          AND d.Durum != 'iade'
-          AND i.IadeTarihi > i.TeslimTarihi;
+        DECLARE ceza_cursor CURSOR FOR
+            SELECT i.OduncID, i.KitapID, i.KullaniciID, i.TeslimTarihi, i.IadeTarihi
+            FROM inserted i
+            INNER JOIN deleted d ON i.OduncID = d.OduncID
+            WHERE i.Durum = 'iade' AND d.Durum = 'odunc';
         
-        -- Log kaydı
-        INSERT INTO SistemLoglari (KullaniciID, Islem, Detay)
-        SELECT i.KullaniciID, 'IADE', 
-               'Kitap ID: ' + CAST(i.KitapID AS NVARCHAR) + ' iade edildi.'
-        FROM inserted i
-        INNER JOIN deleted d ON i.OduncID = d.OduncID
-        WHERE i.Durum = 'iade' AND d.Durum != 'iade';
+        OPEN ceza_cursor;
+        FETCH NEXT FROM ceza_cursor INTO @OduncID, @KitapID, @KullaniciID, @TeslimTarihi, @IadeTarihi;
+        
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            SET @GecikmeDakika = DATEDIFF(MINUTE, @TeslimTarihi, @IadeTarihi);
+            
+            IF @GecikmeDakika > 0
+            BEGIN
+                SET @CezaTutari = @GecikmeDakika * 0.10;
+                SET @CezaTutari = ROUND(@CezaTutari, 2);
+                
+                IF NOT EXISTS (SELECT 1 FROM Cezalar WHERE OduncID = @OduncID)
+                BEGIN
+                    INSERT INTO Cezalar (OduncID, KullaniciID, GecikmeGunu, CezaTutari, OdenmeDurumu)
+                    VALUES (@OduncID, @KullaniciID, @GecikmeDakika, @CezaTutari, 0);
+                END
+            END
+            
+            UPDATE Kitaplar SET MevcutAdet = MevcutAdet + 1 WHERE KitapID = @KitapID;
+            
+            FETCH NEXT FROM ceza_cursor INTO @OduncID, @KitapID, @KullaniciID, @TeslimTarihi, @IadeTarihi;
+        END
+        
+        CLOSE ceza_cursor;
+        DEALLOCATE ceza_cursor;
     END
-END
+END;
 GO
+
+PRINT 'Trigger oluşturuldu! Ceza: 0.10 TL/dakika';
 
 -- Trigger 3: Kullanıcı silindiğinde log tut
 IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_KullaniciSilindi')
@@ -467,6 +480,26 @@ BEGIN
 END
 GO
 
+-- ============================================
+-- ÖRNEK VERİLER
+-- ============================================
+
+-- Admin Kullanıcı (Şifre: Admin123!)
+INSERT INTO Kullanicilar (Ad, Soyad, Email, Sifre, Rol)
+VALUES ('Admin', 'Sistem', 'admin@kutuphane.com', 
+        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyDAXa/z/AnXyS', 'admin');
+
+-- Personel
+INSERT INTO Kullanicilar (Ad, Soyad, Email, Sifre, Rol, Telefon)
+VALUES ('Ahmet', 'Yılmaz', 'ahmet@kutuphane.com', 
+        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyDAXa/z/AnXyS', 'personel', '05551234567');
+
+-- Üyeler
+INSERT INTO Kullanicilar (Ad, Soyad, Email, Sifre, Rol, Telefon)
+VALUES 
+('Mehmet', 'Demir', 'mehmet@mail.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyDAXa/z/AnXyS', 'uye', '05559876543'),
+('Ayşe', 'Kaya', 'ayse@mail.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyDAXa/z/AnXyS', 'uye', '05553456789'),
+('Fatma', 'Şahin', 'fatma@mail.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyDAXa/z/AnXyS', 'uye', '05557891234');
 
 -- Kategoriler
 INSERT INTO Kategoriler (KategoriAdi, Aciklama) VALUES 

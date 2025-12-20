@@ -1,27 +1,32 @@
 # ============================================
 # AKILLI KÜTÜPHANE YÖNETİM SİSTEMİ
-# Models (Entity) Katmanı
-# ============================================
+# Models Katmanı veritabanındaki her tablo için sınıf tanımlanır python karşılığı burası
 
-from datetime import datetime
+
+
+from datetime import datetime 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional # Optional[int]: int veya None olabilir anlamında
 
-@dataclass
+@dataclass 
 class Kullanici:
-    """Kullanıcı Entity Sınıfı"""
-    kullanici_id: Optional[int] = None
-    ad: str = ""
+    """Kullanici varlik sinifi"""
+    kullanici_id: Optional[int] = None #Bu alan int olabilir ama boş da olabilir; = None: Varsayılan değer atanır
+    ad: str = "" # boş bırakılabilir ama string girilmeli
     soyad: str = ""
     email: str = ""
-    sifre: str = ""
-    telefon: Optional[str] = None
+    sifre: str = "" #hashlenmiş şifre koyulur
+    telefon: Optional[str] = None 
     rol: str = "uye"  # admin, personel, uye
-    durum: bool = True
-    kayit_tarihi: Optional[datetime] = None
+    durum: bool = True #kullanıcı aktif mi
+    kayit_tarihi: Optional[datetime] = None #Kayıt sırasında otomatik atanır
     son_giris_tarihi: Optional[datetime] = None
     
-    def to_dict(self):
+    def to_dict(self): # Nesneyi sözlüğe çevirir. API cevap olarak gönderebilmesi için bu dönüşüm şarttır. key-value şeklinde döndürür. veri tabanı sonuçlarını temiz sunmayı sağlar
+        # Şifre güvenlik nedeniyle dahil edilmez!
+        # datetime'ı string'e çevir (JSON serializable olması için)
+        #gerekirse hesaplama yapar vs vs
+        # to_dict, nesneyi güvenli, okunabilir ve JSON uyumlu hale getirmek için kullanılır.
         return {
             'kullanici_id': self.kullanici_id,
             'ad': self.ad,
@@ -31,19 +36,20 @@ class Kullanici:
             'rol': self.rol,
             'durum': self.durum,
             'kayit_tarihi': str(self.kayit_tarihi) if self.kayit_tarihi else None,
+            """datetime nesneleri JSON’a çevrilemez, None ise "None" string’i dönmemeli"""
             'son_giris_tarihi': str(self.son_giris_tarihi) if self.son_giris_tarihi else None
         }
 
 
 @dataclass
 class Kategori:
-    """Kategori Entity Sınıfı"""
+    """Kategori varlik sinifi"""
     kategori_id: Optional[int] = None
     kategori_adi: str = ""
     aciklama: Optional[str] = None
     olusturma_tarihi: Optional[datetime] = None
     
-    def to_dict(self):
+    def to_dict(self): #self=this denilebilir 
         return {
             'kategori_id': self.kategori_id,
             'kategori_adi': self.kategori_adi,
@@ -54,7 +60,7 @@ class Kategori:
 
 @dataclass
 class Yazar:
-    """Yazar Entity Sınıfı"""
+    """Yazar varlik sinifi"""
     yazar_id: Optional[int] = None
     ad: str = ""
     soyad: str = ""
@@ -63,12 +69,12 @@ class Yazar:
     ulke: Optional[str] = None
     olusturma_tarihi: Optional[datetime] = None
     
-    def to_dict(self):
+    def to_dict(self): #varligi szöluge çeviriyorum  
         return {
             'yazar_id': self.yazar_id,
             'ad': self.ad,
             'soyad': self.soyad,
-            'tam_ad': f"{self.ad} {self.soyad}",
+            'tam_ad': f"{self.ad} {self.soyad}", # f-string ile birleştirilmiş tam ad
             'biyografi': self.biyografi,
             'dogum_tarihi': str(self.dogum_tarihi) if self.dogum_tarihi else None,
             'ulke': self.ulke,
@@ -78,7 +84,7 @@ class Yazar:
 
 @dataclass
 class Kitap:
-    """Kitap Entity Sınıfı"""
+    """Kitap varlik sinifi"""
     kitap_id: Optional[int] = None
     isbn: str = ""
     kitap_adi: str = ""
@@ -90,19 +96,20 @@ class Kitap:
     dil: str = "Türkçe"
     aciklama: Optional[str] = None
     kapak_resmi: Optional[str] = None
-    toplam_adet: int = 1
+    toplam_adet: int = 1    
     mevcut_adet: int = 1
     durum: bool = True
     eklenme_tarihi: Optional[datetime] = None
     
     # İlişkili alanlar (JOIN ile gelir)
+    # Bu alanlar veritabanında yok, sorgu sonucunda doldurulur
     yazar_adi: Optional[str] = None
     kategori_adi: Optional[str] = None
     
     def to_dict(self):
         return {
             'kitap_id': self.kitap_id,
-            'isbn': self.isbn,
+            'isbn': self.isbn, #uluslararası kitap numarası
             'kitap_adi': self.kitap_adi,
             'yazar_id': self.yazar_id,
             'yazar_adi': self.yazar_adi,
@@ -124,7 +131,7 @@ class Kitap:
 
 @dataclass
 class OduncIslem:
-    """Ödünç İşlemi Entity Sınıfı"""
+    """Ödünç İşlemi varlik sinifi"""
     odunc_id: Optional[int] = None
     kitap_id: int = 0
     kullanici_id: int = 0
@@ -139,7 +146,7 @@ class OduncIslem:
     kullanici_adi: Optional[str] = None
     gecikme_gunu: int = 0
     
-    def to_dict(self):
+    def to_dict(self): #varlık sözlüğe çevrilir
         return {
             'odunc_id': self.odunc_id,
             'kitap_id': self.kitap_id,
@@ -150,23 +157,24 @@ class OduncIslem:
             'teslim_tarihi': str(self.teslim_tarihi) if self.teslim_tarihi else None,
             'iade_tarihi': str(self.iade_tarihi) if self.iade_tarihi else None,
             'durum': self.durum,
-            'durum_aciklama': self._durum_aciklama(),
+            'durum_aciklama': self._durum_aciklama(), # Private metod çağrısı
             'notlar': self.notlar,
             'gecikme_gunu': self.gecikme_gunu
         }
     
-    def _durum_aciklama(self):
+    def _durum_aciklama(self): # _ ile başlayan metodlar private (özel) kabul edilir.
         durumlar = {
-            'odunc': 'Ödünç Alındı',
+            'odunc': 'Ödünç Alındı', #key-value kısımları
             'iade': 'İade Edildi',
             'geciken': 'Gecikmiş'
         }
-        return durumlar.get(self.durum, 'Bilinmiyor')
+        # .get(): Key yoksa varsayılan değer döndür
+        return durumlar.get(self.durum, 'Bilinmiyor') #self.durum sözlükte varsa karşılığı döndürülür yoksa "bilinmiyor" döner
 
 
 @dataclass
 class Ceza:
-    """Ceza Entity Sınıfı"""
+    """Ceza varlik sinifi"""
     ceza_id: Optional[int] = None
     odunc_id: int = 0
     kullanici_id: int = 0
@@ -180,7 +188,7 @@ class Ceza:
     kullanici_adi: Optional[str] = None
     kitap_adi: Optional[str] = None
     
-    def to_dict(self):
+    def to_dict(self): #varlığı sözlüğe çevirme
         return {
             'ceza_id': self.ceza_id,
             'odunc_id': self.odunc_id,
@@ -198,7 +206,7 @@ class Ceza:
 
 @dataclass
 class SistemLog:
-    """Sistem Log Entity Sınıfı"""
+    """Sistem Log varlik sinifi"""
     log_id: Optional[int] = None
     kullanici_id: Optional[int] = None
     islem: str = ""
@@ -206,12 +214,12 @@ class SistemLog:
     ip_adresi: Optional[str] = None
     tarih: Optional[datetime] = None
     
-    def to_dict(self):
+    def to_dict(self): #varlığı sözlüğe çevirir
         return {
             'log_id': self.log_id,
             'kullanici_id': self.kullanici_id,
             'islem': self.islem,
             'detay': self.detay,
             'ip_adresi': self.ip_adresi,
-            'tarih': str(self.tarih) if self.tarih else None
+            'tarih': str(self.tarih) if self.tarih else None # tarih varsa stringe çevrilir yoksa none atanır
         }

@@ -351,7 +351,7 @@ class OduncRepository:
                    o.OduncTarihi, o.TeslimTarihi, o.IadeTarihi, o.Durum, o.Notlar,
                    CASE 
                        WHEN o.Durum = 'odunc' AND GETDATE() > o.TeslimTarihi 
-                       THEN DATEDIFF(DAY, o.TeslimTarihi, GETDATE())
+                       THEN DATEDIFF(MINUTE, o.TeslimTarihi, GETDATE())
                        ELSE 0 
                    END AS GecikmeGunu
             FROM OduncIslemleri o
@@ -379,17 +379,32 @@ class OduncRepository:
     @staticmethod
     def get_by_user(kullanici_id: int) -> List[dict]:
         """Kullanıcının ödünç geçmişini getirir"""
-        return db.execute_stored_procedure('sp_KullaniciOduncGecmisi', (kullanici_id,))
+        query = """
+            SELECT o.OduncID, o.KitapID, k.KitapAdi, o.KullaniciID,
+                   u.Ad + ' ' + u.Soyad AS KullaniciAdi,
+                   o.OduncTarihi, o.TeslimTarihi, o.IadeTarihi, o.Durum,
+                   CASE 
+                       WHEN o.Durum = 'odunc' AND GETDATE() > o.TeslimTarihi 
+                       THEN DATEDIFF(MINUTE, o.TeslimTarihi, GETDATE())
+                       ELSE 0 
+                   END AS GecikmeGunu
+            FROM OduncIslemleri o
+            INNER JOIN Kitaplar k ON o.KitapID = k.KitapID
+            INNER JOIN Kullanicilar u ON o.KullaniciID = u.KullaniciID
+            WHERE o.KullaniciID = ?
+            ORDER BY o.OduncTarihi DESC
+        """
+        return db.execute_query(query, (kullanici_id,))
     
     @staticmethod
     def get_active_by_user(kullanici_id: int) -> List[dict]:
         """Kullanıcının aktif ödünçlerini getirir"""
         query = """
             SELECT o.OduncID, o.KitapID, k.KitapAdi, k.ISBN,
-                   o.OduncTarihi, o.TeslimTarihi,
+                   o.KullaniciID, o.OduncTarihi, o.TeslimTarihi, o.Durum,
                    CASE 
                        WHEN GETDATE() > o.TeslimTarihi 
-                       THEN DATEDIFF(DAY, o.TeslimTarihi, GETDATE())
+                       THEN DATEDIFF(MINUTE, o.TeslimTarihi, GETDATE())
                        ELSE 0 
                    END AS GecikmeGunu
             FROM OduncIslemleri o
@@ -402,21 +417,69 @@ class OduncRepository:
     @staticmethod
     def get_overdue() -> List[dict]:
         """Geciken kitapları getirir"""
-        return db.execute_stored_procedure('sp_GecikenKitaplar')
+        query = """
+            SELECT o.OduncID, o.KitapID, k.KitapAdi, o.KullaniciID,
+                   u.Ad + ' ' + u.Soyad AS KullaniciAdi, u.Email,
+                   o.OduncTarihi, o.TeslimTarihi, o.Durum,
+                   DATEDIFF(MINUTE, o.TeslimTarihi, GETDATE()) AS GecikmeGunu
+            FROM OduncIslemleri o
+            INNER JOIN Kitaplar k ON o.KitapID = k.KitapID
+            INNER JOIN Kullanicilar u ON o.KullaniciID = u.KullaniciID
+            WHERE o.Durum = 'odunc' AND GETDATE() > o.TeslimTarihi
+            ORDER BY o.TeslimTarihi
+        """
+        return db.execute_query(query)
     
     @staticmethod
     def create(odunc: dict) -> int:
-        """Yeni ödünç işlemi oluşturur"""
+        """
+        Yeni ödünç işlemi oluşturur
+        
+        Parametreler:
+        - odunc_gun: Gün cinsinden süre
+        - odunc_saat: Saat cinsinden süre
+        - odunc_dakika: Dakika cinsinden süre
+        
+        Toplam süre = (gün * 24 * 60) + (saat * 60) + dakika olarak hesaplanır
+        """
+        # Değerleri al (varsayılan 0)
+        gun = int(odunc.get('odunc_gun') or 0)
+        saat = int(odunc.get('odunc_saat') or 0)
+        dakika = int(odunc.get('odunc_dakika') or 0)
+        
+        # Hiçbiri verilmemişse varsayılan 14 gün
+        if gun == 0 and saat == 0 and dakika == 0:
+            gun = 14
+        
+        # Toplam dakikayı hesapla
+        toplam_dakika = (gun * 24 * 60) + (saat * 60) + dakika
+        
+        # Süre mesajı oluştur
+        sure_parcalari = []
+        if gun > 0:
+            sure_parcalari.append(f"{gun} gün")
+        if saat > 0:
+            sure_parcalari.append(f"{saat} saat")
+        if dakika > 0:
+            sure_parcalari.append(f"{dakika} dakika")
+        sure_mesaj = " ".join(sure_parcalari) if sure_parcalari else "14 gün"
+        
+        # DATEADD ile dakika ekle
         query = """
             INSERT INTO OduncIslemleri (KitapID, KullaniciID, TeslimTarihi, Notlar)
-            VALUES (?, ?, DATEADD(DAY, ?, GETDATE()), ?)
+            VALUES (?, ?, DATEADD(MINUTE, ?, GETDATE()), ?)
         """
+        
         params = (
-            odunc['kitap_id'],
-            odunc['kullanici_id'],
-            odunc.get('odunc_gun', 14),
+            int(odunc['kitap_id']),
+            int(odunc['kullanici_id']),
+            toplam_dakika,
             odunc.get('notlar')
         )
+        
+        # Süre mesajını odunc dict'e ekle
+        odunc['_sure_mesaj'] = sure_mesaj
+        
         return db.execute_insert_get_id(query, params)
     
     @staticmethod
@@ -446,6 +509,11 @@ class OduncRepository:
 class CezaRepository:
     """Ceza Repository Sınıfı"""
     
+    # Ceza oranları (Python tarafında hesaplama için)
+    CEZA_DAKIKA_BASI = 0.50    # Dakika başına 0.50 TL (test için)
+    CEZA_SAAT_BASI = 2.00      # Saat başına 2 TL (test için)
+    CEZA_GUN_BASI = 5.00       # Gün başına 5 TL (normal)
+    
     @staticmethod
     def get_all() -> List[dict]:
         """Tüm cezaları getirir"""
@@ -462,6 +530,51 @@ class CezaRepository:
             ORDER BY c.OlusturmaTarihi DESC
         """
         return db.execute_query(query)
+    
+    @staticmethod
+    def get_by_id(ceza_id: int) -> Optional[dict]:
+        """ID'ye göre ceza getirir"""
+        query = """
+            SELECT c.CezaID, c.OduncID, c.KullaniciID,
+                   u.Ad + ' ' + u.Soyad AS KullaniciAdi,
+                   k.KitapAdi,
+                   c.GecikmeGunu, c.CezaTutari, c.OdenmeDurumu,
+                   c.OlusturmaTarihi, c.OdemeTarihi
+            FROM Cezalar c
+            INNER JOIN Kullanicilar u ON c.KullaniciID = u.KullaniciID
+            INNER JOIN OduncIslemleri o ON c.OduncID = o.OduncID
+            INNER JOIN Kitaplar k ON o.KitapID = k.KitapID
+            WHERE c.CezaID = ?
+        """
+        results = db.execute_query(query, (ceza_id,))
+        return results[0] if results else None
+    
+    @staticmethod
+    def create(odunc_id: int, kullanici_id: int, gecikme_dakika: int, ceza_tutari: float) -> int:
+        """
+        Yeni ceza kaydı oluşturur
+        
+        Args:
+            odunc_id: İlgili ödünç ID
+            kullanici_id: Kullanıcı ID
+            gecikme_dakika: Toplam gecikme (dakika cinsinden)
+            ceza_tutari: Hesaplanmış ceza tutarı
+        """
+        query = """
+            INSERT INTO Cezalar (OduncID, KullaniciID, GecikmeGunu, CezaTutari, OdenmeDurumu)
+            VALUES (?, ?, ?, ?, 0)
+        """
+        # GecikmeGunu alanına dakikayı da yazıyoruz (tablo yapısı gün bekliyor ama)
+        # İsterseniz tabloyu da güncelleyebiliriz
+        params = (odunc_id, kullanici_id, gecikme_dakika, ceza_tutari)
+        return db.execute_insert_get_id(query, params)
+    
+    @staticmethod
+    def check_exists_for_odunc(odunc_id: int) -> bool:
+        """Bu ödünç için ceza var mı kontrol eder"""
+        query = "SELECT COUNT(*) FROM Cezalar WHERE OduncID = ?"
+        count = db.execute_scalar(query, (odunc_id,))
+        return count > 0
     
     @staticmethod
     def get_by_user(kullanici_id: int) -> List[dict]:

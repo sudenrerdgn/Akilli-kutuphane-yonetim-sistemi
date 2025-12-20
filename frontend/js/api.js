@@ -268,10 +268,15 @@ class ApiService {
         return await this.request('/odunc/geciken');
     }
 
-    async oduncAl(kitapId, gun = 14) {
+    async oduncAl(kitapId, gun = 0, saat = 0, dakika = 0) {
         return await this.request('/odunc/al', {
             method: 'POST',
-            body: JSON.stringify({ kitap_id: parseInt(kitapId), gun: parseInt(gun) })
+            body: JSON.stringify({ 
+                kitap_id: parseInt(kitapId), 
+                gun: parseInt(gun) || 0,
+                saat: parseInt(saat) || 0,
+                dakika: parseInt(dakika) || 0
+            })
         });
     }
 

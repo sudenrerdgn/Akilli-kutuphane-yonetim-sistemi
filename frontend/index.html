@@ -464,114 +464,6 @@
         </div>
     </div>
 
-    <!-- Author Modal -->
-    <div class="modal" id="authorModal">
-        <div class="modal-content modal-sm">
-            <div class="modal-header">
-                <h2 id="authorModalTitle"><i class="fas fa-user"></i> Yeni Yazar</h2>
-                <button class="modal-close" data-close>&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="authorForm">
-                    <input type="hidden" id="authorId">
-                    <div class="form-group">
-                        <label for="authorAd">Ad *</label>
-                        <input type="text" id="authorAd" required placeholder="Yazarın adı">
-                    </div>
-                    <div class="form-group">
-                        <label for="authorSoyad">Soyad *</label>
-                        <input type="text" id="authorSoyad" required placeholder="Yazarın soyadı">
-                    </div>
-                    <div class="form-group">
-                        <label for="authorCountry">Ülke</label>
-                        <input type="text" id="authorCountry" placeholder="Ülke">
-                    </div>
-                    <div class="form-group">
-                        <label for="authorBio">Biyografi</label>
-                        <textarea id="authorBio" rows="3" placeholder="Yazar hakkında kısa bilgi"></textarea>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" data-close>İptal</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Kaydet
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Category Modal -->
-    <div class="modal" id="categoryModal">
-        <div class="modal-content modal-sm">
-            <div class="modal-header">
-                <h2 id="categoryModalTitle"><i class="fas fa-folder"></i> Yeni Kategori</h2>
-                <button class="modal-close" data-close>&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="categoryForm">
-                    <input type="hidden" id="categoryId">
-                    <div class="form-group">
-                        <label for="categoryName">Kategori Adı *</label>
-                        <input type="text" id="categoryName" required placeholder="Kategori adı">
-                    </div>
-                    <div class="form-group">
-                        <label for="categoryDesc">Açıklama</label>
-                        <textarea id="categoryDesc" rows="3" placeholder="Kategori açıklaması"></textarea>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" data-close>İptal</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Kaydet
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- User Modal -->
-    <div class="modal" id="userModal">
-        <div class="modal-content modal-sm">
-            <div class="modal-header">
-                <h2 id="userModalTitle"><i class="fas fa-user-plus"></i> Yeni Kullanıcı</h2>
-                <button class="modal-close" data-close>&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="userForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="userAd">Ad *</label>
-                            <input type="text" id="userAd" required placeholder="Ad">
-                        </div>
-                        <div class="form-group">
-                            <label for="userSoyad">Soyad *</label>
-                            <input type="text" id="userSoyad" required placeholder="Soyad">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="userEmail">E-posta *</label>
-                        <input type="email" id="userEmail" required placeholder="E-posta adresi">
-                    </div>
-                    <div class="form-group">
-                        <label for="userTelefon">Telefon</label>
-                        <input type="text" id="userTelefon" placeholder="Telefon numarası">
-                    </div>
-                    <div class="form-group">
-                        <label for="userPassword">Şifre *</label>
-                        <input type="password" id="userPassword" required placeholder="Şifre" minlength="6">
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" data-close>İptal</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Kaydet
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Borrow Modal -->
     <div class="modal" id="borrowModal">
         <div class="modal-content modal-sm">
@@ -588,13 +480,134 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="borrowDays">Ödünç Süresi (Gün)</label>
-                        <input type="number" id="borrowDays" value="14" min="1" max="30">
+                        <label>Ödünç Süresi</label>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <input type="number" id="borrowDays" value="0" min="0" max="30" placeholder="Gün">
+                                <small style="color: #888;">Gün</small>
+                            </div>
+                            <div style="flex: 1;">
+                                <input type="number" id="borrowHours" value="0" min="0" max="23" placeholder="Saat">
+                                <small style="color: #888;">Saat</small>
+                            </div>
+                            <div style="flex: 1;">
+                                <input type="number" id="borrowMinutes" value="5" min="0" max="59" placeholder="Dakika">
+                                <small style="color: #888;">Dakika</small>
+                            </div>
+                        </div>
+                        <small style="color: #666; margin-top: 5px; display: block;">
+                            <i class="fas fa-info-circle"></i> Gecikme cezası: 0.10 TL / dakika
+                        </small>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" data-close>İptal</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-check"></i> Ödünç Al
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı Ödünç Al Modal (Kitaplar sayfasından) -->
+    <div class="modal" id="quickBorrowModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2><i class="fas fa-clock"></i> Ödünç Süresi Belirle</h2>
+                <button class="modal-close" data-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="quickBorrowKitapId">
+                <div class="form-group">
+                    <label>Ödünç Süresi</label>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <input type="number" id="quickBorrowDays" value="0" min="0" max="30">
+                            <small style="color: #888;">Gün</small>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="number" id="quickBorrowHours" value="0" min="0" max="23">
+                            <small style="color: #888;">Saat</small>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="number" id="quickBorrowMinutes" value="5" min="0" max="59">
+                            <small style="color: #888;">Dakika</small>
+                        </div>
+                    </div>
+                    <small style="color: #666; margin-top: 5px; display: block;">
+                        <i class="fas fa-info-circle"></i> Gecikme cezası: 0.10 TL / dakika
+                    </small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" data-close>İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmQuickBorrow()">
+                        <i class="fas fa-check"></i> Ödünç Al
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yazar Modal -->
+    <div class="modal" id="authorModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 id="authorModalTitle"><i class="fas fa-user-edit"></i> Yeni Yazar</h2>
+                <button class="modal-close" data-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="authorForm">
+                    <input type="hidden" id="authorId">
+                    <div class="form-group">
+                        <label for="authorAd">Ad *</label>
+                        <input type="text" id="authorAd" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="authorSoyad">Soyad *</label>
+                        <input type="text" id="authorSoyad" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="authorUlke">Ülke</label>
+                        <input type="text" id="authorUlke" placeholder="Türkiye">
+                    </div>
+                    <div class="form-group">
+                        <label for="authorBiyografi">Biyografi</label>
+                        <textarea id="authorBiyografi" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" data-close>İptal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kategori Modal -->
+    <div class="modal" id="categoryModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 id="categoryModalTitle"><i class="fas fa-folder-plus"></i> Yeni Kategori</h2>
+                <button class="modal-close" data-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm">
+                    <input type="hidden" id="categoryId">
+                    <div class="form-group">
+                        <label for="categoryAdi">Kategori Adı *</label>
+                        <input type="text" id="categoryAdi" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="categoryAciklama">Açıklama</label>
+                        <textarea id="categoryAciklama" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" data-close>İptal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Kaydet
                         </button>
                     </div>
                 </form>
@@ -608,6 +621,5 @@
     <!-- Scripts -->
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>
-    
 </body>
 </html>

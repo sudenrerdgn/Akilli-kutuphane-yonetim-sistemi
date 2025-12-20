@@ -22,6 +22,7 @@ async function initApp() {
     setupModals();
     setupForms();
     setupSidebar();
+    setupOduncTabs();  // Tab event listener'ları
     
     // Check login status
     updateAuthUI();
@@ -30,6 +31,21 @@ async function initApp() {
     await loadKategoriler();
     await loadYazarlar();
     await loadDashboard();
+}
+
+// Ödünç sayfası tab'ları için event listener
+function setupOduncTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // Aktif class'ı güncelle
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            // Tab'a göre veri yükle
+            const tab = e.target.dataset.tab;
+            loadOduncler(tab);
+        });
+    });
 }
 
 // ==================
@@ -51,16 +67,14 @@ function setupNavigation() {
     const searchInput = document.getElementById('globalSearch');
     let searchTimeout;
     
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                if (e.target.value.length >= 2) {
-                    searchBooks(e.target.value);
-                }
-            }, 300);
-        });
-    }
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            if (e.target.value.length >= 2) {
+                searchBooks(e.target.value);
+            }
+        }, 300);
+    });
 }
 
 function navigateTo(page) {
@@ -124,11 +138,9 @@ function setupSidebar() {
     const toggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
     
-    if (toggle && sidebar) {
-        toggle.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-        });
-    }
+    toggle.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+    });
 }
 
 // ==================
@@ -141,15 +153,13 @@ function updateAuthUI() {
     const user = api.getUser();
     
     if (api.isLoggedIn() && user) {
-        if (loginBtn) loginBtn.style.display = 'none';
-        if (userInfo) {
-            userInfo.style.display = 'flex';
-            document.getElementById('userName').textContent = `${user.ad} ${user.soyad}`;
-            document.getElementById('userRole').textContent = getRoleText(user.rol);
-        }
+        loginBtn.style.display = 'none';
+        userInfo.style.display = 'flex';
+        document.getElementById('userName').textContent = `${user.ad} ${user.soyad}`;
+        document.getElementById('userRole').textContent = getRoleText(user.rol);
     } else {
-        if (loginBtn) loginBtn.style.display = 'flex';
-        if (userInfo) userInfo.style.display = 'none';
+        loginBtn.style.display = 'flex';
+        userInfo.style.display = 'none';
     }
 }
 
@@ -168,12 +178,12 @@ function getRoleText(rol) {
 
 function setupModals() {
     // Login Modal
-    document.getElementById('loginBtn')?.addEventListener('click', () => {
+    document.getElementById('loginBtn').addEventListener('click', () => {
         openModal('loginModal');
     });
     
     // Logout
-    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+    document.getElementById('logoutBtn').addEventListener('click', () => {
         api.logout();
         updateAuthUI();
         showToast('Çıkış yapıldı', 'success');
@@ -181,19 +191,19 @@ function setupModals() {
     });
     
     // Register/Login switch
-    document.getElementById('showRegister')?.addEventListener('click', (e) => {
+    document.getElementById('showRegister').addEventListener('click', (e) => {
         e.preventDefault();
         closeModal('loginModal');
         openModal('registerModal');
     });
     
-    document.getElementById('showLogin')?.addEventListener('click', (e) => {
+    document.getElementById('showLogin').addEventListener('click', (e) => {
         e.preventDefault();
         closeModal('registerModal');
         openModal('loginModal');
     });
     
-    // Add Book button
+    // Add buttons
     document.getElementById('addBookBtn')?.addEventListener('click', () => {
         if (!api.isLoggedIn()) {
             showToast('Giriş yapmanız gerekiyor', 'warning');
@@ -204,40 +214,6 @@ function setupModals() {
         openModal('bookModal');
     });
     
-    // Add Author button
-    document.getElementById('addAuthorBtn')?.addEventListener('click', () => {
-        if (!api.isLoggedIn()) {
-            showToast('Giriş yapmanız gerekiyor', 'warning');
-            return;
-        }
-        resetAuthorForm();
-        document.getElementById('authorModalTitle').innerHTML = '<i class="fas fa-user"></i> Yeni Yazar';
-        openModal('authorModal');
-    });
-    
-    // Add Category button
-    document.getElementById('addCategoryBtn')?.addEventListener('click', () => {
-        if (!api.isLoggedIn()) {
-            showToast('Giriş yapmanız gerekiyor', 'warning');
-            return;
-        }
-        resetCategoryForm();
-        document.getElementById('categoryModalTitle').innerHTML = '<i class="fas fa-folder"></i> Yeni Kategori';
-        openModal('categoryModal');
-    });
-    
-    // Add User button
-    document.getElementById('addUserBtn')?.addEventListener('click', () => {
-        if (!api.isLoggedIn()) {
-            showToast('Giriş yapmanız gerekiyor', 'warning');
-            return;
-        }
-        resetUserForm();
-        document.getElementById('userModalTitle').innerHTML = '<i class="fas fa-user-plus"></i> Yeni Kullanıcı';
-        openModal('userModal');
-    });
-    
-    // New Borrow button
     document.getElementById('newBorrowBtn')?.addEventListener('click', () => {
         if (!api.isLoggedIn()) {
             showToast('Giriş yapmanız gerekiyor', 'warning');
@@ -266,13 +242,11 @@ function setupModals() {
 }
 
 function openModal(id) {
-    const modal = document.getElementById(id);
-    if (modal) modal.classList.add('active');
+    document.getElementById(id).classList.add('active');
 }
 
 function closeModal(id) {
-    const modal = document.getElementById(id);
-    if (modal) modal.classList.remove('active');
+    document.getElementById(id).classList.remove('active');
 }
 
 // ==================
@@ -281,7 +255,7 @@ function closeModal(id) {
 
 function setupForms() {
     // Login Form
-    document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
         const sifre = document.getElementById('loginPassword').value;
@@ -298,7 +272,7 @@ function setupForms() {
     });
     
     // Register Form
-    document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const userData = {
             ad: document.getElementById('regAd').value,
@@ -319,7 +293,7 @@ function setupForms() {
     });
     
     // Book Form
-    document.getElementById('bookForm')?.addEventListener('submit', async (e) => {
+    document.getElementById('bookForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const bookId = document.getElementById('bookId').value;
         const bookData = {
@@ -351,15 +325,48 @@ function setupForms() {
         }
     });
     
+    // Borrow Form
+    document.getElementById('borrowForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const kitapId = document.getElementById('borrowBook').value;
+        const gun = parseInt(document.getElementById('borrowDays').value) || 0;
+        const saat = parseInt(document.getElementById('borrowHours').value) || 0;
+        const dakika = parseInt(document.getElementById('borrowMinutes').value) || 0;
+        
+        // En az bir süre girilmiş olmalı
+        if (gun === 0 && saat === 0 && dakika === 0) {
+            showToast('Lütfen bir süre belirleyin!', 'error');
+            return;
+        }
+        
+        try {
+            await api.oduncAl(kitapId, gun, saat, dakika);
+            closeModal('borrowModal');
+            showToast('Kitap ödünç alındı!', 'success');
+            loadOduncler();
+            loadKitaplar();
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    });
+    
     // Author Form
     document.getElementById('authorForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        // Admin kontrolü
+        const user = api.getUser();
+        if (!user || user.rol !== 'admin') {
+            showToast('Bu işlem için admin yetkisi gerekiyor!', 'error');
+            return;
+        }
+        
         const authorId = document.getElementById('authorId').value;
         const authorData = {
             ad: document.getElementById('authorAd').value,
             soyad: document.getElementById('authorSoyad').value,
-            biyografi: document.getElementById('authorBio').value || null,
-            ulke: document.getElementById('authorCountry').value || null
+            ulke: document.getElementById('authorUlke').value || null,
+            biyografi: document.getElementById('authorBiyografi').value || null
         };
         
         try {
@@ -371,8 +378,8 @@ function setupForms() {
                 showToast('Yazar eklendi!', 'success');
             }
             closeModal('authorModal');
-            await loadYazarlar();
-            await loadYazarlarTable();
+            loadYazarlarTable();
+            loadYazarlar(); // Dropdown'ları güncelle
         } catch (error) {
             showToast(error.message, 'error');
         }
@@ -381,10 +388,18 @@ function setupForms() {
     // Category Form
     document.getElementById('categoryForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        // Admin kontrolü
+        const user = api.getUser();
+        if (!user || user.rol !== 'admin') {
+            showToast('Bu işlem için admin yetkisi gerekiyor!', 'error');
+            return;
+        }
+        
         const categoryId = document.getElementById('categoryId').value;
         const categoryData = {
-            kategori_adi: document.getElementById('categoryName').value,
-            aciklama: document.getElementById('categoryDesc').value || null
+            kategori_adi: document.getElementById('categoryAdi').value,
+            aciklama: document.getElementById('categoryAciklama').value || null
         };
         
         try {
@@ -396,54 +411,35 @@ function setupForms() {
                 showToast('Kategori eklendi!', 'success');
             }
             closeModal('categoryModal');
-            await loadKategoriler();
-            await loadKategorilerGrid();
+            loadKategorilerGrid();
+            loadKategoriler(); // Dropdown'ları güncelle
         } catch (error) {
             showToast(error.message, 'error');
         }
     });
     
-    // User Form (Admin adding new user)
-    document.getElementById('userForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const userData = {
-            ad: document.getElementById('userAd').value,
-            soyad: document.getElementById('userSoyad').value,
-            email: document.getElementById('userEmail').value,
-            telefon: document.getElementById('userTelefon').value || null,
-            sifre: document.getElementById('userPassword').value
-        };
-        
-        try {
-            await api.register(userData);
-            closeModal('userModal');
-            showToast('Kullanıcı eklendi!', 'success');
-            loadKullanicilar();
-        } catch (error) {
-            showToast(error.message, 'error');
-        }
-    });
-    
-    // Borrow Form
-    document.getElementById('borrowForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const kitapId = parseInt(document.getElementById('borrowBook').value);
-        const gun = parseInt(document.getElementById('borrowDays').value) || 14;
-        
-        if (!kitapId) {
-            showToast('Lütfen bir kitap seçin', 'warning');
+    // Add Author Button
+    document.getElementById('addAuthorBtn')?.addEventListener('click', () => {
+        const user = api.getUser();
+        if (!user || user.rol !== 'admin') {
+            showToast('Bu işlem için admin yetkisi gerekiyor!', 'error');
             return;
         }
-        
-        try {
-            await api.oduncAl(kitapId, gun);
-            closeModal('borrowModal');
-            showToast('Kitap ödünç alındı!', 'success');
-            loadOduncler();
-            loadKitaplar();
-        } catch (error) {
-            showToast(error.message, 'error');
+        resetAuthorForm();
+        document.getElementById('authorModalTitle').innerHTML = '<i class="fas fa-user-edit"></i> Yeni Yazar';
+        openModal('authorModal');
+    });
+    
+    // Add Category Button
+    document.getElementById('addCategoryBtn')?.addEventListener('click', () => {
+        const user = api.getUser();
+        if (!user || user.rol !== 'admin') {
+            showToast('Bu işlem için admin yetkisi gerekiyor!', 'error');
+            return;
         }
+        resetCategoryForm();
+        document.getElementById('categoryModalTitle').innerHTML = '<i class="fas fa-folder-plus"></i> Yeni Kategori';
+        openModal('categoryModal');
     });
     
     // Filters
@@ -452,26 +448,20 @@ function setupForms() {
     document.getElementById('mevcutFilter')?.addEventListener('change', loadKitaplar);
 }
 
-function resetBookForm() {
-    document.getElementById('bookForm')?.reset();
-    const bookId = document.getElementById('bookId');
-    if (bookId) bookId.value = '';
-}
-
+// Form reset fonksiyonları
 function resetAuthorForm() {
-    document.getElementById('authorForm')?.reset();
-    const authorId = document.getElementById('authorId');
-    if (authorId) authorId.value = '';
+    document.getElementById('authorForm').reset();
+    document.getElementById('authorId').value = '';
 }
 
 function resetCategoryForm() {
-    document.getElementById('categoryForm')?.reset();
-    const categoryId = document.getElementById('categoryId');
-    if (categoryId) categoryId.value = '';
+    document.getElementById('categoryForm').reset();
+    document.getElementById('categoryId').value = '';
 }
 
-function resetUserForm() {
-    document.getElementById('userForm')?.reset();
+function resetBookForm() {
+    document.getElementById('bookForm').reset();
+    document.getElementById('bookId').value = '';
 }
 
 // ==================
@@ -495,21 +485,19 @@ async function loadDashboard() {
         const popular = await api.getPopulerKitaplar(5);
         const popularList = document.getElementById('popularBooks');
         
-        if (popularList) {
-            if (popular.data && popular.data.length > 0) {
-                popularList.innerHTML = popular.data.map((book, index) => `
-                    <li>
-                        <span class="rank">${index + 1}</span>
-                        <div class="book-info">
-                            <div class="book-name">${book.KitapAdi}</div>
-                            <div class="book-author">${book.YazarAdi || 'Bilinmiyor'}</div>
-                        </div>
-                        <span class="borrow-count">${book.OduncSayisi} ödünç</span>
-                    </li>
-                `).join('');
-            } else {
-                popularList.innerHTML = '<li class="loading-item">Henüz veri yok</li>';
-            }
+        if (popular.data && popular.data.length > 0) {
+            popularList.innerHTML = popular.data.map((book, index) => `
+                <li>
+                    <span class="rank">${index + 1}</span>
+                    <div class="book-info">
+                        <div class="book-name">${book.KitapAdi}</div>
+                        <div class="book-author">${book.YazarAdi || 'Bilinmiyor'}</div>
+                    </div>
+                    <span class="borrow-count">${book.OduncSayisi} ödünç</span>
+                </li>
+            `).join('');
+        } else {
+            popularList.innerHTML = '<li class="loading-item">Henüz veri yok</li>';
         }
         
     } catch (error) {
@@ -561,8 +549,6 @@ async function loadYazarlar() {
 
 async function loadKitaplar() {
     const grid = document.getElementById('booksGrid');
-    if (!grid) return;
-    
     grid.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
     
     try {
@@ -632,8 +618,6 @@ async function loadKitaplar() {
 
 async function loadYazarlarTable() {
     const tbody = document.getElementById('authorsBody');
-    if (!tbody) return;
-    
     tbody.innerHTML = '<tr><td colspan="5" class="loading-item">Yükleniyor...</td></tr>';
     
     try {
@@ -644,6 +628,9 @@ async function loadYazarlarTable() {
             return;
         }
         
+        const user = api.getUser();
+        const isAdmin = user && user.rol === 'admin';
+        
         tbody.innerHTML = result.data.map(y => `
             <tr>
                 <td>${y.YazarID}</td>
@@ -651,7 +638,7 @@ async function loadYazarlarTable() {
                 <td>${y.Ulke || '-'}</td>
                 <td>${y.Biyografi ? y.Biyografi.substring(0, 50) + '...' : '-'}</td>
                 <td>
-                    ${api.isLoggedIn() ? `
+                    ${isAdmin ? `
                         <button class="btn btn-sm btn-primary" onclick="editYazar(${y.YazarID})">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -670,8 +657,6 @@ async function loadYazarlarTable() {
 
 async function loadKategorilerGrid() {
     const grid = document.getElementById('categoriesGrid');
-    if (!grid) return;
-    
     grid.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
     
     try {
@@ -687,6 +672,9 @@ async function loadKategorilerGrid() {
             return;
         }
         
+        const user = api.getUser();
+        const isAdmin = user && user.rol === 'admin';
+        
         const icons = ['fa-book', 'fa-rocket', 'fa-landmark', 'fa-brain', 'fa-child', 'fa-flask', 'fa-feather', 'fa-heart'];
         
         grid.innerHTML = result.data.map((k, i) => `
@@ -696,7 +684,7 @@ async function loadKategorilerGrid() {
                 </div>
                 <h3 class="category-name">${k.KategoriAdi}</h3>
                 <p class="category-count">${k.Aciklama || 'Açıklama yok'}</p>
-                ${api.isLoggedIn() ? `
+                ${isAdmin ? `
                     <div class="category-actions">
                         <button class="btn btn-sm btn-primary" onclick="editKategori(${k.KategoriID})">
                             <i class="fas fa-edit"></i>
@@ -714,10 +702,13 @@ async function loadKategorilerGrid() {
     }
 }
 
-async function loadOduncler() {
-    const tbody = document.getElementById('borrowsBody');
-    if (!tbody) return;
+// Aktif tab'ı takip et
+let currentOduncTab = 'aktif';
+
+async function loadOduncler(tab = null) {
+    if (tab) currentOduncTab = tab;
     
+    const tbody = document.getElementById('borrowsBody');
     tbody.innerHTML = '<tr><td colspan="7" class="loading-item">Yükleniyor...</td></tr>';
     
     if (!api.isLoggedIn()) {
@@ -727,77 +718,95 @@ async function loadOduncler() {
     
     try {
         const user = api.getUser();
+        const isAdmin = user && (user.rol === 'admin' || user.rol === 'personel');
+        
         let result;
         
-        // Rol bazlı endpoint seçimi
-        if (user && (user.rol === 'admin' || user.rol === 'personel')) {
-            // Admin/Personel tüm ödünçleri görebilir
-            result = await api.getOduncler();
-        } else {
-            // Normal kullanıcı sadece kendi aktif ödünçlerini görebilir
-            result = await api.getAktifOdunclerim();
+        // Tab'a göre veri çek
+        switch (currentOduncTab) {
+            case 'aktif':
+                // Admin tüm aktif ödünçleri, üye kendi aktiflerini görür
+                if (isAdmin) {
+                    const allResult = await api.getOduncler();
+                    result = {
+                        data: allResult.data?.filter(o => o.Durum === 'odunc') || []
+                    };
+                } else {
+                    result = await api.getAktifOdunclerim();
+                }
+                break;
+                
+            case 'geciken':
+                // Admin tüm gecikenleri görür, üye kendi gecikenlerini
+                if (isAdmin) {
+                    result = await api.getGecikenKitaplar();
+                } else {
+                    const aktif = await api.getAktifOdunclerim();
+                    result = {
+                        data: aktif.data?.filter(o => o.GecikmeGunu > 0) || []
+                    };
+                }
+                break;
+                
+            case 'gecmis':
+                // Admin tüm geçmişi, üye kendi geçmişini görür
+                if (isAdmin) {
+                    const allResult = await api.getOduncler();
+                    result = {
+                        data: allResult.data?.filter(o => o.Durum === 'iade') || []
+                    };
+                } else {
+                    const gecmis = await api.getOduncGecmisim();
+                    result = {
+                        data: gecmis.data?.filter(o => o.Durum === 'iade') || []
+                    };
+                }
+                break;
+                
+            default:
+                result = isAdmin ? await api.getOduncler() : await api.getOduncGecmisim();
         }
         
         if (!result.data || result.data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="loading-item">Ödünç işlemi bulunamadı</td></tr>';
+            const emptyMessages = {
+                'aktif': 'Aktif ödünç bulunmuyor',
+                'geciken': 'Geciken kitap bulunmuyor',
+                'gecmis': 'Geçmiş ödünç bulunmuyor'
+            };
+            tbody.innerHTML = `<tr><td colspan="7" class="loading-item">${emptyMessages[currentOduncTab] || 'Ödünç işlemi bulunamadı'}</td></tr>`;
             return;
         }
         
-        // Normal kullanıcı için farklı tablo yapısı (KullaniciAdi yok)
-        if (user && user.rol === 'uye') {
-            tbody.innerHTML = result.data.map(o => `
-                <tr>
-                    <td>${o.OduncID}</td>
-                    <td>${o.KitapAdi}</td>
-                    <td>${user.ad} ${user.soyad}</td>
-                    <td>${formatDate(o.OduncTarihi)}</td>
-                    <td>${formatDate(o.TeslimTarihi)}</td>
-                    <td>
-                        <span class="badge ${getStatusBadge('odunc', o.GecikmeGunu || 0)}">
-                            ${getStatusText('odunc', o.GecikmeGunu || 0)}
-                        </span>
-                    </td>
-                    <td>
+        tbody.innerHTML = result.data.map(o => `
+            <tr>
+                <td>${o.OduncID}</td>
+                <td>${o.KitapAdi || '-'}</td>
+                <td>${o.KullaniciAdi || (user?.ad + ' ' + user?.soyad) || '-'}</td>
+                <td>${formatDate(o.OduncTarihi)}</td>
+                <td>${formatDate(o.TeslimTarihi)}</td>
+                <td>
+                    <span class="badge ${getStatusBadge(o.Durum, o.GecikmeGunu)}">
+                        ${getStatusText(o.Durum, o.GecikmeGunu)}
+                    </span>
+                </td>
+                <td>
+                    ${o.Durum === 'odunc' ? `
                         <button class="btn btn-sm btn-success" onclick="iadeEt(${o.OduncID})">
                             <i class="fas fa-undo"></i> İade Et
                         </button>
-                    </td>
-                </tr>
-            `).join('');
-        } else {
-            // Admin/Personel için tam tablo
-            tbody.innerHTML = result.data.map(o => `
-                <tr>
-                    <td>${o.OduncID}</td>
-                    <td>${o.KitapAdi}</td>
-                    <td>${o.KullaniciAdi}</td>
-                    <td>${formatDate(o.OduncTarihi)}</td>
-                    <td>${formatDate(o.TeslimTarihi)}</td>
-                    <td>
-                        <span class="badge ${getStatusBadge(o.Durum, o.GecikmeGunu)}">
-                            ${getStatusText(o.Durum, o.GecikmeGunu)}
-                        </span>
-                    </td>
-                    <td>
-                        ${o.Durum === 'odunc' ? `
-                            <button class="btn btn-sm btn-success" onclick="iadeEt(${o.OduncID})">
-                                <i class="fas fa-undo"></i> İade Et
-                            </button>
-                        ` : '-'}
-                    </td>
-                </tr>
-            `).join('');
-        }
+                    ` : '-'}
+                </td>
+            </tr>
+        `).join('');
         
     } catch (error) {
+        console.error('Ödünç yükleme hatası:', error);
         tbody.innerHTML = `<tr><td colspan="7" class="loading-item">${error.message}</td></tr>`;
     }
 }
 
 async function loadKullanicilar() {
     const tbody = document.getElementById('usersBody');
-    if (!tbody) return;
-    
     tbody.innerHTML = '<tr><td colspan="7" class="loading-item">Yükleniyor...</td></tr>';
     
     if (!api.isLoggedIn()) {
@@ -838,8 +847,6 @@ async function loadKullanicilar() {
 
 async function loadCezalar() {
     const tbody = document.getElementById('penaltiesBody');
-    if (!tbody) return;
-    
     tbody.innerHTML = '<tr><td colspan="7" class="loading-item">Yükleniyor...</td></tr>';
     
     if (!api.isLoggedIn()) {
@@ -848,79 +855,47 @@ async function loadCezalar() {
     }
     
     try {
+        // Kullanıcı rolünü kontrol et
         const user = api.getUser();
-        let result;
+        const isAdmin = user && (user.rol === 'admin' || user.rol === 'personel');
         
-        // Rol bazlı endpoint seçimi
-        if (user && (user.rol === 'admin' || user.rol === 'personel')) {
-            // Admin/Personel tüm cezaları görebilir
-            result = await api.getCezalar();
-        } else {
-            // Normal kullanıcı sadece kendi cezalarını görebilir
-            result = await api.getCezalarim();
-        }
+        // Admin/Personel tüm cezaları, üye kendi cezalarını görür
+        const result = isAdmin ? await api.getCezalar() : await api.getCezalarim();
         
         let total = 0;
         if (result.data) {
             result.data.forEach(c => {
-                if (!c.OdenmeDurumu) total += c.CezaTutari;
+                if (!c.OdenmeDurumu) total += (parseFloat(c.CezaTutari) || 0);
             });
         }
-        const totalEl = document.getElementById('totalPenalty');
-        if (totalEl) totalEl.textContent = `${total.toFixed(2)} TL`;
+        document.getElementById('totalPenalty').textContent = `${(total || 0).toFixed(2)} TL`;
         
         if (!result.data || result.data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="loading-item">Ceza bulunamadı</td></tr>';
             return;
         }
         
-        // Normal kullanıcı için farklı tablo yapısı (KullaniciAdi yok)
-        if (user && user.rol === 'uye') {
-            tbody.innerHTML = result.data.map(c => `
-                <tr>
-                    <td>${c.CezaID}</td>
-                    <td>${user.ad} ${user.soyad}</td>
-                    <td>${c.KitapAdi}</td>
-                    <td>${c.GecikmeGunu} gün</td>
-                    <td><strong>${c.CezaTutari.toFixed(2)} TL</strong></td>
-                    <td>
-                        <span class="badge ${c.OdenmeDurumu ? 'badge-success' : 'badge-danger'}">
-                            ${c.OdenmeDurumu ? 'Ödendi' : 'Ödenmedi'}
-                        </span>
-                    </td>
-                    <td>
-                        ${!c.OdenmeDurumu ? `
-                            <button class="btn btn-sm btn-success" onclick="cezaOde(${c.CezaID})">
-                                <i class="fas fa-check"></i> Öde
-                            </button>
-                        ` : '-'}
-                    </td>
-                </tr>
-            `).join('');
-        } else {
-            // Admin/Personel için tam tablo
-            tbody.innerHTML = result.data.map(c => `
-                <tr>
-                    <td>${c.CezaID}</td>
-                    <td>${c.KullaniciAdi}</td>
-                    <td>${c.KitapAdi}</td>
-                    <td>${c.GecikmeGunu} gün</td>
-                    <td><strong>${c.CezaTutari.toFixed(2)} TL</strong></td>
-                    <td>
-                        <span class="badge ${c.OdenmeDurumu ? 'badge-success' : 'badge-danger'}">
-                            ${c.OdenmeDurumu ? 'Ödendi' : 'Ödenmedi'}
-                        </span>
-                    </td>
-                    <td>
-                        ${!c.OdenmeDurumu ? `
-                            <button class="btn btn-sm btn-success" onclick="cezaOde(${c.CezaID})">
-                                <i class="fas fa-check"></i> Öde
-                            </button>
-                        ` : '-'}
-                    </td>
-                </tr>
-            `).join('');
-        }
+        tbody.innerHTML = result.data.map(c => `
+            <tr>
+                <td>${c.CezaID}</td>
+                <td>${c.KullaniciAdi || user?.ad + ' ' + user?.soyad || '-'}</td>
+                <td>${c.KitapAdi || '-'}</td>
+                <td>${c.GecikmeGunu || 0} dakika</td>
+                <td><strong>${(parseFloat(c.CezaTutari) || 0).toFixed(2)} TL</strong></td>
+                <td>
+                    <span class="badge ${c.OdenmeDurumu ? 'badge-success' : 'badge-danger'}">
+                        ${c.OdenmeDurumu ? 'Ödendi' : 'Ödenmedi'}
+                    </span>
+                </td>
+                <td>
+                    ${!c.OdenmeDurumu ? `
+                        <button class="btn btn-sm btn-success" onclick="cezaOde(${c.CezaID})">
+                            <i class="fas fa-credit-card"></i> Öde
+                        </button>
+                    ` : '-'}
+                </td>
+            </tr>
+        `).join('');
         
     } catch (error) {
         tbody.innerHTML = `<tr><td colspan="7" class="loading-item">${error.message}</td></tr>`;
@@ -929,8 +904,6 @@ async function loadCezalar() {
 
 async function loadBorrowableBooks() {
     const select = document.getElementById('borrowBook');
-    if (!select) return;
-    
     select.innerHTML = '<option value="">Yükleniyor...</option>';
     
     try {
@@ -967,6 +940,7 @@ async function searchBooks(query) {
             </div>
         `;
     } else {
+        // Re-render with search results
         await loadKitaplar();
     }
 }
@@ -1009,8 +983,29 @@ async function deleteBook(id) {
 }
 
 async function quickBorrow(kitapId) {
+    // Süre belirleme modalını aç
+    document.getElementById('quickBorrowKitapId').value = kitapId;
+    document.getElementById('quickBorrowDays').value = 0;
+    document.getElementById('quickBorrowHours').value = 0;
+    document.getElementById('quickBorrowMinutes').value = 5;
+    openModal('quickBorrowModal');
+}
+
+async function confirmQuickBorrow() {
+    const kitapId = document.getElementById('quickBorrowKitapId').value;
+    const gun = parseInt(document.getElementById('quickBorrowDays').value) || 0;
+    const saat = parseInt(document.getElementById('quickBorrowHours').value) || 0;
+    const dakika = parseInt(document.getElementById('quickBorrowMinutes').value) || 0;
+    
+    // En az bir süre girilmiş olmalı
+    if (gun === 0 && saat === 0 && dakika === 0) {
+        showToast('Lütfen bir süre belirleyin!', 'error');
+        return;
+    }
+    
     try {
-        await api.oduncAl(kitapId);
+        await api.oduncAl(kitapId, gun, saat, dakika);
+        closeModal('quickBorrowModal');
         showToast('Kitap ödünç alındı!', 'success');
         loadKitaplar();
     } catch (error) {
@@ -1028,63 +1023,87 @@ async function iadeEt(oduncId) {
     }
 }
 
-// Yazar CRUD
 async function editYazar(id) {
+    // Admin kontrolü
+    const user = api.getUser();
+    if (!user || user.rol !== 'admin') {
+        showToast('Bu işlem için admin yetkisi gerekiyor!', 'error');
+        return;
+    }
+    
     try {
         const result = await api.getYazar(id);
-        const yazar = result.data;
-        
-        document.getElementById('authorId').value = yazar.YazarID;
-        document.getElementById('authorAd').value = yazar.Ad;
-        document.getElementById('authorSoyad').value = yazar.Soyad;
-        document.getElementById('authorBio').value = yazar.Biyografi || '';
-        document.getElementById('authorCountry').value = yazar.Ulke || '';
-        
-        document.getElementById('authorModalTitle').innerHTML = '<i class="fas fa-edit"></i> Yazar Düzenle';
-        openModal('authorModal');
+        if (result.data) {
+            document.getElementById('authorId').value = result.data.YazarID;
+            document.getElementById('authorAd').value = result.data.Ad || '';
+            document.getElementById('authorSoyad').value = result.data.Soyad || '';
+            document.getElementById('authorUlke').value = result.data.Ulke || '';
+            document.getElementById('authorBiyografi').value = result.data.Biyografi || '';
+            document.getElementById('authorModalTitle').innerHTML = '<i class="fas fa-user-edit"></i> Yazar Düzenle';
+            openModal('authorModal');
+        }
     } catch (error) {
         showToast(error.message, 'error');
     }
 }
 
 async function deleteYazar(id) {
+    // Admin kontrolü
+    const user = api.getUser();
+    if (!user || user.rol !== 'admin') {
+        showToast('Bu işlem için admin yetkisi gerekiyor!', 'error');
+        return;
+    }
+    
     if (!confirm('Bu yazarı silmek istediğinizden emin misiniz?')) return;
     
     try {
         await api.deleteYazar(id);
         showToast('Yazar silindi!', 'success');
-        await loadYazarlar();
-        await loadYazarlarTable();
+        loadYazarlar();
+        loadYazarlarTable();
     } catch (error) {
         showToast(error.message, 'error');
     }
 }
 
-// Kategori CRUD
 async function editKategori(id) {
+    // Admin kontrolü
+    const user = api.getUser();
+    if (!user || user.rol !== 'admin') {
+        showToast('Bu işlem için admin yetkisi gerekiyor!', 'error');
+        return;
+    }
+    
     try {
         const result = await api.getKategori(id);
-        const kategori = result.data;
-        
-        document.getElementById('categoryId').value = kategori.KategoriID;
-        document.getElementById('categoryName').value = kategori.KategoriAdi;
-        document.getElementById('categoryDesc').value = kategori.Aciklama || '';
-        
-        document.getElementById('categoryModalTitle').innerHTML = '<i class="fas fa-edit"></i> Kategori Düzenle';
-        openModal('categoryModal');
+        if (result.data) {
+            document.getElementById('categoryId').value = result.data.KategoriID;
+            document.getElementById('categoryAdi').value = result.data.KategoriAdi || '';
+            document.getElementById('categoryAciklama').value = result.data.Aciklama || '';
+            document.getElementById('categoryModalTitle').innerHTML = '<i class="fas fa-folder"></i> Kategori Düzenle';
+            openModal('categoryModal');
+        }
     } catch (error) {
         showToast(error.message, 'error');
     }
 }
 
 async function deleteKategori(id) {
+    // Admin kontrolü
+    const user = api.getUser();
+    if (!user || user.rol !== 'admin') {
+        showToast('Bu işlem için admin yetkisi gerekiyor!', 'error');
+        return;
+    }
+    
     if (!confirm('Bu kategoriyi silmek istediğinizden emin misiniz?')) return;
     
     try {
         await api.deleteKategori(id);
         showToast('Kategori silindi!', 'success');
-        await loadKategoriler();
-        await loadKategorilerGrid();
+        loadKategoriler();
+        loadKategorilerGrid();
     } catch (error) {
         showToast(error.message, 'error');
     }
@@ -1130,7 +1149,20 @@ function getStatusBadge(durum, gecikme) {
 
 function getStatusText(durum, gecikme) {
     if (durum === 'iade') return 'İade Edildi';
-    if (gecikme > 0) return `Gecikmiş (${gecikme} gün)`;
+    if (gecikme > 0) {
+        // Dakikayı gün/saat/dakika formatına çevir
+        const gun = Math.floor(gecikme / (60 * 24));
+        const kalan = gecikme % (60 * 24);
+        const saat = Math.floor(kalan / 60);
+        const dakika = kalan % 60;
+        
+        let gecikmeStr = '';
+        if (gun > 0) gecikmeStr += `${gun}g `;
+        if (saat > 0) gecikmeStr += `${saat}s `;
+        if (dakika > 0 || (gun === 0 && saat === 0)) gecikmeStr += `${dakika}dk`;
+        
+        return `Gecikmiş (${gecikmeStr.trim()})`;
+    }
     return 'Ödünç';
 }
 
@@ -1140,8 +1172,6 @@ function getStatusText(durum, gecikme) {
 
 function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
-    if (!container) return;
-    
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
@@ -1160,6 +1190,7 @@ function showToast(message, type = 'info') {
     
     container.appendChild(toast);
     
+    // Auto remove after 5 seconds
     setTimeout(() => {
         toast.remove();
     }, 5000);

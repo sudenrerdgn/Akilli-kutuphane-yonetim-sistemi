@@ -72,12 +72,7 @@ Giriş, kitap arama/listeleme, ödünç alma ve iade ekranları
 🧪 Test ve Demo
 API’ler Postman veya Swagger üzerinden test edilmiştir.
 
-## 🔑 Varsayılan Kullanıcılar
 
-| E-posta | Şifre | Rol |
-|---------|-------|-----|
-| admin@test.com | 067272 | Admin |
-| sude.100@gmail.com | sudesıla1 | Üye |
 
 
 🎯 Öğrenim Hedefleri
